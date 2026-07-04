@@ -12,6 +12,8 @@ import { profilesRouter } from "./routes/profiles.js";
 import { talentRouter } from "./routes/talent.js";
 import { communitiesRouter } from "./routes/communities.js";
 import { notificationsRouter } from "./routes/notifications.js";
+import { friendsRouter } from "./routes/friends.js";
+import { moderationRouter } from "./routes/moderation.js";
 import { setupSocket } from "./socket.js";
 import { getAllowedOrigins } from "./lib/cors.js";
 import { authLimiter, apiLimiter } from "./middleware/rateLimit.js";
@@ -53,6 +55,8 @@ app.use("/api/profiles", profilesRouter);
 app.use("/api/talent", talentRouter);
 app.use("/api/communities", communitiesRouter);
 app.use("/api/notifications", notificationsRouter);
+app.use("/api/friends", friendsRouter);
+app.use("/api/moderation", moderationRouter);
 
 // ---------- Error handling (لازم يفضلوا آخر حاجة) ----------
 app.use(notFoundHandler);

@@ -31,6 +31,8 @@ interface ParticipantShape {
 }
 interface ConversationRow {
   id: string;
+  isGroup: boolean;
+  name: string | null;
   updatedAt: Date;
   participants: ParticipantShape[];
   messages: { body: string; senderId: string; codeContent: string | null; createdAt: Date }[];
@@ -50,6 +52,8 @@ conversationsRouter.get(
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
+        isGroup: true,
+        name: true,
         updatedAt: true,
         participants: { select: participantSelect },
         // آخر رسالة بس — للـ preview في القايمة الشمال
@@ -67,6 +71,10 @@ conversationsRouter.get(
       const last = c.messages[0] ?? null;
       return {
         id: c.id,
+        isGroup: c.isGroup,
+        // اسم العرض: للجروب اسمه، للفردي اسم الطرف التاني
+        title: c.isGroup ? c.name : (other?.profile?.displayName ?? "Unknown"),
+        memberCount: c.participants.length,
         updatedAt: c.updatedAt,
         other,
         lastMessage: last
@@ -164,5 +172,61 @@ conversationsRouter.get(
       (conversation?.participants as ParticipantShape[] | undefined)?.find((p) => p.user.id !== userId)?.user ?? null;
 
     res.json({ ok: true, messages, other });
+  })
+);
+
+// ---------------------------------------------------------------
+// POST /api/conversations/group — إنشاء جروب (أصدقاء بس)
+// ---------------------------------------------------------------
+import { z as zGroup } from "zod";
+
+const createGroupSchema = zGroup.object({
+  name: zGroup.string().min(2, "Group name is too short").max(60),
+  usernames: zGroup.array(zGroup.string()).min(1, "Add at least one friend").max(20),
+});
+
+conversationsRouter.post(
+  "/group",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const input = createGroupSchema.parse(req.body);
+    const me = req.user!.userId;
+
+    // نجيب الـ IDs بتاعت الأعضاء المطلوبين
+    const members = await prisma.user.findMany({
+      where: { username: { in: input.usernames } },
+      select: { id: true, username: true },
+    });
+    if (members.length === 0) throw Errors.badRequest("No valid users to add");
+
+    // تحقق: كل عضو لازم يكون صديق للمنشئ (زي ما اتفقنا)
+    for (const member of members) {
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          status: "ACCEPTED",
+          OR: [
+            { requesterId: me, addresseeId: member.id },
+            { requesterId: member.id, addresseeId: me },
+          ],
+        },
+      });
+      if (!friendship) {
+        throw Errors.forbidden(`@${member.username} is not your friend — only friends can be added`);
+      }
+    }
+
+    // المنشئ + الأعضاء (من غير تكرار لو المنشئ ضاف نفسه بالغلط)
+    const memberIds = [...new Set([me, ...members.map((m: { id: string }) => m.id)])];
+
+    const group = await prisma.conversation.create({
+      data: {
+        isGroup: true,
+        name: input.name,
+        participants: { create: memberIds.map((userId: string) => ({ userId })) },
+      },
+      select: { id: true, name: true, isGroup: true },
+    });
+
+    res.status(201).json({ ok: true, conversationId: group.id, group });
   })
 );

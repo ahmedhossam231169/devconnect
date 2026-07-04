@@ -1,7 +1,13 @@
 import { prisma } from "./prisma.js";
 import { emitToUser } from "../socket.js";
 
-type NotificationType = "POST_LIKE" | "POST_COMMENT" | "COMMUNITY_JOIN";
+type NotificationType =
+  | "POST_LIKE"
+  | "POST_COMMENT"
+  | "COMMUNITY_JOIN"
+  | "FRIEND_REQUEST"
+  | "FRIEND_ACCEPT"
+  | "NEW_FOLLOWER";
 
 interface NotifyInput {
   userId: string; // المستلم

@@ -123,3 +123,18 @@ export interface AppNotification {
   read: boolean;
   createdAt: string;
 }
+
+// ---------- Group 2: Friends, Follows, Groups ----------
+
+export interface UserCard {
+  id: string;
+  username: string;
+  profile: { displayName: string; avatarUrl: string | null; headline: string | null };
+}
+
+export type FriendState = "none" | "friends" | "request_sent" | "request_received";
+
+export interface RelationStatus {
+  friendState: FriendState;
+  following: boolean;
+}

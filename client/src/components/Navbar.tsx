@@ -26,12 +26,14 @@ export function Navbar() {
     ? [
         { to: "/feed", label: "Feed" },
         { to: "/messages", label: "Messages" },
+        { to: "/friends", label: "Friends" },
         { to: "/communities", label: "Communities" },
         { to: "/talent", label: "🎯 Talent Search" },
       ]
     : [
         { to: "/feed", label: "Feed" },
         { to: "/messages", label: "Messages" },
+        { to: "/friends", label: "Friends" },
         { to: "/communities", label: "Communities" },
         { to: "/profile/edit", label: "Edit Profile" },
       ];

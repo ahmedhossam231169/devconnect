@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import type { Profile, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
 import { PostCard } from "../components/PostCard";
+import { RelationActions } from "../components/RelationActions";
 
 interface PublicUser {
   username: string;
@@ -92,9 +93,12 @@ export default function UserProfile() {
                   {isMe ? (
                     <Link to="/profile/edit" className="btn-ghost !py-2 text-sm">Edit</Link>
                   ) : (
-                    <button onClick={messageUser} disabled={startingChat} className="btn-primary !py-2 text-sm disabled:opacity-60">
-                      {startingChat ? "..." : "💬 Message"}
-                    </button>
+                    <div className="flex flex-col items-end gap-2">
+                      <RelationActions username={username!} />
+                      <button onClick={messageUser} disabled={startingChat} className="text-sm text-brand-400 hover:underline disabled:opacity-60">
+                        {startingChat ? "..." : "💬 Message"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

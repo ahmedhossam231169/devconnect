@@ -67,3 +67,9 @@ npm run dev                 # http://localhost:5173
 - [x] Public user profiles — view anyone's profile + their posts at /u/:username
 - [x] Edit / delete posts — owner-only, enforced server-side (403 otherwise)
 - [x] Recruiters see the full feed — same social experience as devs, with Talent Search as an extra
+
+## Group 2 — Social Network
+- [x] Friends — send/accept/decline requests, friends list, relationship status
+- [x] Follow — one-way follow/unfollow with notifications
+- [x] Group chats — friends-only, built on the existing Conversation model
+- [x] Moderation — block/unblock (auto-clears friendship+follow) and report posts/users

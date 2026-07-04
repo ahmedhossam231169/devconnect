@@ -54,6 +54,13 @@ model User {
   messages      Message[]
   communities   CommunityMember[]
   notifications Notification[]
+  sentFriendRequests     Friendship[] @relation("SentFriendRequests")
+  receivedFriendRequests Friendship[] @relation("ReceivedFriendRequests")
+  following      Follow[] @relation("Following")
+  followers      Follow[] @relation("Followers")
+  blocksMade     Block[]  @relation("BlocksMade")
+  blocksReceived Block[]  @relation("BlocksReceived")
+  reportsMade    Report[] @relation("ReportsMade")
   comments Comment[]
   likes    Like[]
 }
@@ -143,6 +150,8 @@ model Like {
 
 model Conversation {
   id        String   @id @default(cuid())
+  isGroup   Boolean  @default(false) // جروب ولا محادثة 1:1
+  name      String?  // اسم الجروب (للجروبات بس)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt // بنحدثه مع كل رسالة عشان نرتب القائمة بآخر نشاط
 
@@ -189,6 +198,9 @@ enum NotificationType {
   POST_LIKE
   POST_COMMENT
   COMMUNITY_JOIN
+  FRIEND_REQUEST
+  FRIEND_ACCEPT
+  NEW_FOLLOWER
 }
 
 model Community {
@@ -230,4 +242,67 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read, createdAt])
+}
+
+// ---------- Group 2: Friends, Follows, Groups, Moderation ----------
+
+enum FriendStatus {
+  PENDING   // اترسل طلب، مستني قبول
+  ACCEPTED  // أصدقاء فعلاً
+}
+
+// الصداقة علاقة متبادلة — بنخزن صف واحد بس، requester + addressee
+model Friendship {
+  id          String       @id @default(cuid())
+  requesterId String       // اللي بعت الطلب
+  addresseeId String       // اللي استقبل الطلب
+  status      FriendStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+
+  requester User @relation("SentFriendRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("ReceivedFriendRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId]) // مايتكررش نفس الطلب
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+}
+
+// المتابعة علاقة اتجاه واحد — follower بيتابع following
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+// حظر — لو A حظر B، مايشوفش بعض ولا يتفاعلوا
+model Block {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+// بلاغات — مراجعة يدوية لاحقًا (بوست أو مستخدم)
+model Report {
+  id             String   @id @default(cuid())
+  reporterId     String
+  reason         String
+  targetPostId   String?  // بلاغ عن بوست
+  targetUserId   String?  // أو بلاغ عن مستخدم
+  createdAt      DateTime @default(now())
+
+  reporter User @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
 }

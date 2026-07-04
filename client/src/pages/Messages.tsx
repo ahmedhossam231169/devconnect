@@ -13,6 +13,9 @@ interface OtherUser {
 }
 interface ConversationItem {
   id: string;
+  isGroup: boolean;
+  title: string | null;
+  memberCount: number;
   updatedAt: string;
   other: OtherUser | null;
   lastMessage: { preview: string; mine: boolean; createdAt: string } | null;
@@ -214,11 +217,11 @@ export default function Messages() {
               }
             >
               <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-700 font-bold">
-                {c.other?.profile?.displayName?.[0]?.toUpperCase() ?? "?"}
+                {c.isGroup ? "👥" : (c.other?.profile?.displayName?.[0]?.toUpperCase() ?? "?")}
                 <span className="absolute -bottom-0.5 -right-0.5">{dot(c.other?.id)}</span>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{c.other?.profile?.displayName ?? "Unknown"}</p>
+                <p className="truncate font-semibold">{c.title ?? c.other?.profile?.displayName ?? "Unknown"}</p>
                 <p className="truncate text-xs text-mist-400">
                   {c.lastMessage ? (c.lastMessage.mine ? "You: " : "") + c.lastMessage.preview : "Say hi 👋"}
                 </p>
@@ -238,21 +241,31 @@ export default function Messages() {
             </div>
           ) : (
             <>
+              {(() => {
+                const activeConv = conversations.find((c) => c.id === activeId);
+                const isGroup = activeConv?.isGroup ?? false;
+                return (
               <div className="flex items-center gap-3 border-b border-ink-700 px-4 py-3">
                 <button onClick={() => setActiveId(null)} className="text-mist-400 md:hidden" aria-label="Back">
                   ←
                 </button>
                 <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 font-bold">
-                  {other?.profile?.displayName?.[0]?.toUpperCase() ?? "?"}
-                  <span className="absolute -bottom-0.5 -right-0.5">{dot(other?.id)}</span>
+                  {isGroup ? "👥" : (other?.profile?.displayName?.[0]?.toUpperCase() ?? "?")}
+                  {!isGroup && <span className="absolute -bottom-0.5 -right-0.5">{dot(other?.id)}</span>}
                 </div>
                 <div>
-                  <p className="font-semibold leading-tight">{other?.profile?.displayName}</p>
+                  <p className="font-semibold leading-tight">
+                    {isGroup ? activeConv?.title : other?.profile?.displayName}
+                  </p>
                   <p className="text-xs text-mist-400">
-                    {peerTyping ? "typing..." : other && online[other.id] ? "Active now" : "Offline"}
+                    {isGroup
+                      ? `${activeConv?.memberCount} members`
+                      : peerTyping ? "typing..." : other && online[other.id] ? "Active now" : "Offline"}
                   </p>
                 </div>
               </div>
+                );
+              })()}
 
               <div className="flex-1 space-y-3 overflow-y-auto p-4">
                 {messages.map((m) => {
