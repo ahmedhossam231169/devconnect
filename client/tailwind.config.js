@@ -1,25 +1,27 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  darkMode: "class", // نتحكم في الـ dark/light بكلاس على <html>
   theme: {
     extend: {
-      // ألوان الهوية — مأخوذة من الـ mockups بتاعتك (dark + indigo)
+      // الألوان بقت متغيرات CSS — قيمتها بتتبدّل حسب الـ theme
+      // نفس أسماء الكلاسات (bg-ink-800, text-mist-100...) تفضل شغالة زي ما هي
       colors: {
         ink: {
-          950: "#0A0E17", // أغمق خلفية (body)
-          900: "#0F1420", // خلفية الأقسام
-          800: "#161C2C", // الكروت
-          700: "#1F2739", // borders / hover
+          950: "rgb(var(--ink-950) / <alpha-value>)",
+          900: "rgb(var(--ink-900) / <alpha-value>)",
+          800: "rgb(var(--ink-800) / <alpha-value>)",
+          700: "rgb(var(--ink-700) / <alpha-value>)",
         },
         brand: {
-          400: "#8B7CFF",
-          500: "#6C5CE7", // اللون الأساسي (الأزرار)
-          600: "#5A4BD1",
+          400: "rgb(var(--brand-400) / <alpha-value>)",
+          500: "rgb(var(--brand-500) / <alpha-value>)",
+          600: "rgb(var(--brand-600) / <alpha-value>)",
         },
         mist: {
-          100: "#EDEFF7", // نص أساسي
-          400: "#9AA3B8", // نص ثانوي
-          600: "#5C6478", // نص خافت
+          100: "rgb(var(--mist-100) / <alpha-value>)",
+          400: "rgb(var(--mist-400) / <alpha-value>)",
+          600: "rgb(var(--mist-600) / <alpha-value>)",
         },
       },
       fontFamily: {

@@ -1,28 +1,17 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { useTheme } from "../lib/theme";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 
 export function Navbar() {
   const { user, logout } = useAuth();
+  const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
   const isRecruiter = user?.role === "RECRUITER";
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const navLink = (to: string, label: string) => (
-    <Link
-      to={to}
-      className={
-        "rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors " +
-        (pathname.startsWith(to)
-          ? "bg-brand-500/15 text-brand-400"
-          : "text-mist-400 hover:text-mist-100")
-      }
-    >
-      {label}
-    </Link>
-  );
-
-  // Recruiters بيشوفوا كل حاجة زي المطور + Talent Search كميزة إضافية ليهم
   const links = isRecruiter
     ? [
         { to: "/feed", label: "Feed" },
@@ -42,42 +31,131 @@ export function Navbar() {
         { to: "/profile/edit", label: "Edit Profile" },
       ];
 
+  const navLink = (to: string, label: string, onClick?: () => void) => (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={
+        "rounded-lg px-3 py-2 text-sm font-semibold transition-colors " +
+        (pathname.startsWith(to)
+          ? "bg-brand-500/15 text-brand-400"
+          : "text-mist-400 hover:text-mist-100")
+      }
+    >
+      {label}
+    </Link>
+  );
+
   return (
-    <header className="sticky top-0 z-10 border-b border-ink-700 bg-ink-950/90 backdrop-blur">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
-        <Link to="/feed" className="shrink-0 text-lg font-extrabold text-brand-400">
-          ⌁ DevConnect
-        </Link>
+    <>
+      {/* هيدر ثابت فوق */}
+      <header className="sticky top-0 z-30 border-b border-ink-700 bg-ink-950/90 backdrop-blur">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 md:hidden"
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
 
-        <div className="hidden items-center gap-1 md:flex">
-          {links.map((l) => <span key={l.to}>{navLink(l.to, l.label)}</span>)}
-        </div>
+          <Link to="/feed" className="shrink-0 text-lg font-extrabold text-brand-400">
+            ⌁ DevConnect
+          </Link>
 
-        <SearchBar />
-
-        <div className="flex items-center gap-3">
-          {isRecruiter && (
-            <span className="hidden rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-400 sm:block">
-              🎯 Recruiter
-            </span>
-          )}
-          <NotificationBell />
-          <span className="hidden text-sm text-mist-400 sm:block">
-            @{user?.username}
-          </span>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 font-bold text-white">
-            {user?.profile.displayName?.[0]?.toUpperCase() ?? "?"}
+          <div className="hidden items-center gap-1 md:flex">
+            {links.map((l) => <span key={l.to}>{navLink(l.to, l.label)}</span>)}
           </div>
-          <button onClick={logout} className="text-sm text-mist-400 hover:text-red-400">
-            Logout
+
+          <SearchBar />
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={toggle}
+              className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+            <NotificationBell />
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white">
+              {user?.profile.avatarUrl ? (
+                <img src={user.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                user?.profile.displayName?.[0]?.toUpperCase() ?? "?"
+              )}
+            </div>
+            <button onClick={logout} className="hidden text-sm text-mist-400 hover:text-red-400 sm:block">
+              Logout
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* خلفية معتّمة خلف الـ sidebar */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar للموبايل */}
+      <aside
+        className={
+          "fixed left-0 top-0 z-50 h-full w-72 max-w-[80%] border-r border-ink-700 bg-ink-900 " +
+          "transition-transform duration-300 md:hidden " +
+          (menuOpen ? "translate-x-0" : "-translate-x-full")
+        }
+      >
+        <div className="flex items-center justify-between border-b border-ink-700 px-4 py-4">
+          <span className="text-lg font-extrabold text-brand-400">⌁ DevConnect</span>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800"
+            aria-label="Close menu"
+          >
+            ✕
           </button>
         </div>
-      </nav>
 
-      {/* nav صغيرة للموبايل تحت الهيدر */}
-      <div className="flex items-center gap-1 border-t border-ink-700/60 px-4 py-1.5 md:hidden">
-        {links.map((l) => <span key={l.to}>{navLink(l.to, l.label)}</span>)}
-      </div>
-    </header>
+        <div className="flex items-center gap-3 border-b border-ink-700 px-4 py-4">
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white">
+            {user?.profile.avatarUrl ? (
+              <img src={user.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              user?.profile.displayName?.[0]?.toUpperCase() ?? "?"
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{user?.profile.displayName}</p>
+            <p className="truncate text-xs text-mist-600">@{user?.username}</p>
+          </div>
+        </div>
+
+        <nav className="flex flex-col gap-1 p-3">
+          {links.map((l) => (
+            <span key={l.to}>{navLink(l.to, l.label, () => setMenuOpen(false))}</span>
+          ))}
+        </nav>
+
+        <div className="absolute bottom-0 left-0 right-0 border-t border-ink-700 p-3">
+          <button
+            onClick={toggle}
+            className="mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-mist-400 hover:bg-ink-800"
+          >
+            {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+          </button>
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-400 hover:bg-ink-800"
+          >
+            ⏻ Logout
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
