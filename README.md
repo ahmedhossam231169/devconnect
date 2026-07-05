@@ -73,3 +73,7 @@ npm run dev                 # http://localhost:5173
 - [x] Follow — one-way follow/unfollow with notifications
 - [x] Group chats — friends-only, built on the existing Conversation model
 - [x] Moderation — block/unblock (auto-clears friendship+follow) and report posts/users
+
+## Group 3 — Communities & Pages
+- [x] Community posts — members-only posting, each community has its own feed (isolated from main feed)
+- [x] Pages (facebook-style) — create pages, admin-only posting, follow/unfollow, follower counts

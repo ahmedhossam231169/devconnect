@@ -17,6 +17,8 @@ import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
 import UserProfile from "./pages/UserProfile";
 import Friends from "./pages/Friends";
+import Pages from "./pages/Pages";
+import PageDetail from "./pages/PageDetail";
 
 export default function App() {
   return (
@@ -37,6 +39,8 @@ export default function App() {
           <Route path="/communities/:slug" element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>} />
           <Route path="/u/:username" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
+          <Route path="/pages" element={<ProtectedRoute><Pages /></ProtectedRoute>} />
+          <Route path="/pages/:slug" element={<ProtectedRoute><PageDetail /></ProtectedRoute>} />
 
           {/* المرحلة 5 — recruiters بس */}
           <Route path="/talent" element={<RecruiterRoute><TalentSearch /></RecruiterRoute>} />

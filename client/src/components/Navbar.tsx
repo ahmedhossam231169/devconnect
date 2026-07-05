@@ -28,6 +28,7 @@ export function Navbar() {
         { to: "/messages", label: "Messages" },
         { to: "/friends", label: "Friends" },
         { to: "/communities", label: "Communities" },
+        { to: "/pages", label: "Pages" },
         { to: "/talent", label: "🎯 Talent Search" },
       ]
     : [
@@ -35,6 +36,7 @@ export function Navbar() {
         { to: "/messages", label: "Messages" },
         { to: "/friends", label: "Friends" },
         { to: "/communities", label: "Communities" },
+        { to: "/pages", label: "Pages" },
         { to: "/profile/edit", label: "Edit Profile" },
       ];
 

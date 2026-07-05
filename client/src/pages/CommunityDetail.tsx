@@ -1,19 +1,28 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
-import type { CommunityDetail as CommunityDetailType } from "../lib/types";
+import type { CommunityDetail as CommunityDetailType, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { Composer } from "../components/Composer";
+import { PostCard } from "../components/PostCard";
 
 export default function CommunityDetail() {
   const { slug } = useParams<{ slug: string }>();
   const [community, setCommunity] = useState<CommunityDetailType | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
-    api<{ ok: true; community: CommunityDetailType }>(`/api/communities/${slug}`)
-      .then((res) => setCommunity(res.community))
+    Promise.all([
+      api<{ ok: true; community: CommunityDetailType }>(`/api/communities/${slug}`),
+      api<{ ok: true; posts: Post[] }>(`/api/communities/${slug}/posts`),
+    ])
+      .then(([c, p]) => {
+        setCommunity(c.community);
+        setPosts(p.posts);
+      })
       .finally(() => setLoading(false));
   }, [slug]);
 
@@ -81,6 +90,40 @@ export default function CommunityDetail() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Community feed */}
+        {!loading && community && (
+          <div className="mt-6">
+            {community.joinedByMe ? (
+              <div className="mb-4">
+                <Composer
+                  endpoint={`/api/communities/${community.slug}/posts`}
+                  placeholder={`Share something with ${community.name}...`}
+                  onCreated={(post) => setPosts((p) => [post, ...p])}
+                />
+              </div>
+            ) : (
+              <div className="card mb-4 !p-4 text-center text-sm text-mist-400">
+                Join the community to post here.
+              </div>
+            )}
+
+            <h2 className="mb-3 px-1 font-semibold">
+              Posts {posts.length > 0 && <span className="text-mist-600">({posts.length})</span>}
+            </h2>
+            {posts.length === 0 ? (
+              <div className="card !p-8 text-center">
+                <p className="text-sm text-mist-400">No posts yet. Be the first to share!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {posts.map((p) => (
+                  <PostCard key={p.id} post={p} onDeleted={(id) => setPosts((prev) => prev.filter((x) => x.id !== id))} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>

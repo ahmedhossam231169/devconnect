@@ -7,7 +7,15 @@ const LANGUAGES = [
   "java", "csharp", "cpp", "php", "ruby", "sql", "bash", "json", "css", "html",
 ];
 
-export function Composer({ onCreated }: { onCreated: (post: Post) => void }) {
+export function Composer({
+  onCreated,
+  endpoint = "/api/posts",
+  placeholder,
+}: {
+  onCreated: (post: Post) => void;
+  endpoint?: string;
+  placeholder?: string;
+}) {
   const [type, setType] = useState<PostType>("TEXT");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -25,7 +33,7 @@ export function Composer({ onCreated }: { onCreated: (post: Post) => void }) {
           ? { type, title: title || undefined, body, codeLanguage, codeContent }
           : { type, title: title || undefined, body };
 
-      const res = await api<{ ok: true; post: Post }>("/api/posts", {
+      const res = await api<{ ok: true; post: Post }>(endpoint, {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -72,7 +80,7 @@ export function Composer({ onCreated }: { onCreated: (post: Post) => void }) {
       />
       <textarea
         className="input-field min-h-20 resize-y"
-        placeholder={type === "QUESTION" ? "What's blocking you?" : "What are you building today?"}
+        placeholder={placeholder ?? (type === "QUESTION" ? "What's blocking you?" : "What are you building today?")}
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />

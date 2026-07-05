@@ -45,6 +45,8 @@ postsRouter.get(
     const q = feedQuerySchema.parse(req.query);
 
     const posts = await prisma.post.findMany({
+      // الـ feed العام يعرض البوستات العامة بس — بوستات المجتمعات والصفحات ليها صفحاتها
+      where: { communityId: null, pageId: null },
       take: q.take + 1, // واحد زيادة عشان نعرف لو في صفحة بعد كده
       ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}),
       orderBy:

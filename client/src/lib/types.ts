@@ -138,3 +138,24 @@ export interface RelationStatus {
   friendState: FriendState;
   following: boolean;
 }
+
+// ---------- Group 3: Pages ----------
+
+export const PAGE_CATEGORIES = ["Company", "Project", "Open Source", "Community", "Product"] as const;
+export type PageCategory = (typeof PAGE_CATEGORIES)[number];
+
+export interface PageListItem {
+  id: string;
+  name: string;
+  slug: string;
+  bio: string | null;
+  category: string;
+  avatarUrl: string | null;
+  followerCount: number;
+  followedByMe: boolean;
+}
+
+export interface PageDetail extends PageListItem {
+  createdAt: string;
+  isAdmin: boolean;
+}

@@ -194,3 +194,89 @@ communitiesRouter.post(
     res.json({ ok: true, joined: true, memberCount });
   })
 );
+
+// ---------------------------------------------------------------
+// GET /api/communities/:slug/posts — بوستات المجتمع
+// POST /api/communities/:slug/posts — نشر في المجتمع (الأعضاء بس)
+// ---------------------------------------------------------------
+import { createPostSchema } from "../schemas/posts.js";
+
+const communityPostSelect = (viewerId: string) =>
+  ({
+    id: true,
+    type: true,
+    title: true,
+    body: true,
+    codeLanguage: true,
+    codeContent: true,
+    createdAt: true,
+    author: {
+      select: {
+        username: true,
+        profile: { select: { displayName: true, avatarUrl: true, headline: true } },
+      },
+    },
+    _count: { select: { likes: true, comments: true } },
+    likes: { where: { userId: viewerId }, select: { userId: true } },
+  }) as const;
+
+function shapeCommunityPost(p: any) {
+  const { likes, _count, ...rest } = p;
+  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0 };
+}
+
+communitiesRouter.get(
+  "/:slug/posts",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const community = await prisma.community.findFirst({
+      where: { slug: req.params.slug! },
+      select: { id: true },
+    });
+    if (!community) throw Errors.notFound("Community");
+
+    const posts = await prisma.post.findMany({
+      where: { communityId: community.id },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: communityPostSelect(req.user!.userId),
+    });
+
+    res.json({ ok: true, posts: posts.map(shapeCommunityPost) });
+  })
+);
+
+communitiesRouter.post(
+  "/:slug/posts",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const community = await prisma.community.findFirst({
+      where: { slug: req.params.slug! },
+      select: { id: true },
+    });
+    if (!community) throw Errors.notFound("Community");
+
+    // لازم تكون عضو عشان تنشر
+    const membership = await prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId: community.id, userId } },
+    });
+    if (!membership) throw Errors.forbidden("Join the community to post in it");
+
+    const input = createPostSchema.parse(req.body);
+    const post = await prisma.post.create({
+      data: {
+        authorId: userId,
+        communityId: community.id,
+        type: input.type,
+        title: input.title ?? null,
+        body: input.body,
+        codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
+        codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+      },
+      select: communityPostSelect(userId),
+    });
+
+    res.status(201).json({ ok: true, post: shapeCommunityPost(post) });
+  })
+);
