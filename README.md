@@ -77,3 +77,9 @@ npm run dev                 # http://localhost:5173
 ## Group 3 — Communities & Pages
 - [x] Community posts — members-only posting, each community has its own feed (isolated from main feed)
 - [x] Pages (facebook-style) — create pages, admin-only posting, follow/unfollow, follower counts
+
+## Group 4 — Differentiation
+- [x] GitHub projects import — live public repos on profiles (stars, language, forks)
+- [x] Onboarding — 3-step guided setup after first signup (specialty, skills, availability)
+- [x] Reputation — activity-based score (likes, comments, posts, friends) shown on profiles
+- [x] Recruiter shortlist — save candidates with private notes ("Saved Candidates")

@@ -11,13 +11,14 @@ export interface AuthUser {
   email: string;
   username: string;
   role: "DEVELOPER" | "RECRUITER";
-  profile: { displayName: string; avatarUrl: string | null; headline: string | null };
+  profile: { displayName: string; avatarUrl: string | null; headline: string | null; onboarded?: boolean };
 }
 
 interface AuthState {
   user: AuthUser | null;
   loading: boolean; // لسه بنتأكد من التوكن المخزن ولا لأ
   setSession: (token: string, user: AuthUser) => void;
+  refresh: () => Promise<void>;
   logout: () => void;
 }
 
@@ -48,6 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
 
+  // نعيد جلب بيانات المستخدم من السيرفر (بعد onboarding أو تعديل بروفايل)
+  const refresh = async () => {
+    try {
+      const res = await api<{ ok: true; user: AuthUser }>("/api/auth/me");
+      setUser(res.user);
+    } catch {
+      /* نتجاهل — لو فشل نسيب الحالة زي ما هي */
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     closeSocket(); // نقفل الاتصال المباشر عشان مايفضلش شغال بتوكن قديم
@@ -55,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, setSession, logout }}>
+    <AuthContext.Provider value={{ user, loading, setSession, refresh, logout }}>
       {children}
     </AuthContext.Provider>
   );

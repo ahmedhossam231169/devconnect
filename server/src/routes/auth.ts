@@ -19,7 +19,7 @@ const publicUserSelect = {
   role: true,
   createdAt: true,
   profile: {
-    select: { displayName: true, avatarUrl: true, headline: true },
+    select: { displayName: true, avatarUrl: true, headline: true, onboarded: true },
   },
 } as const;
 
@@ -181,6 +181,7 @@ authRouter.get(
               displayName: gh.name ?? gh.login,
               avatarUrl: gh.avatar_url,
               githubUrl: `https://github.com/${gh.login}`,
+              githubUsername: gh.login,
             },
           },
         },

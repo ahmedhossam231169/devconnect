@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import type { Profile } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { ShortlistButton } from "../components/ShortlistButton";
+import { GitHubProjects } from "../components/GitHubProjects";
 
 interface CandidateUser {
   username: string;
@@ -135,11 +137,15 @@ export default function CandidateDetail() {
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Sidebar */}
+              {/* GitHub Projects — الشغل الحقيقي للمرشح */}
+              <GitHubProjects username={username!} />
+            </div>
             <div className="space-y-4">
               <div className="card">
+                <div className="mb-2">
+                  <ShortlistButton username={username!} />
+                </div>
                 <button
                   onClick={messageCandidate}
                   disabled={startingChat}

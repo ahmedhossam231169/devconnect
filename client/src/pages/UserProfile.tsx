@@ -6,6 +6,7 @@ import type { Profile, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
 import { PostCard } from "../components/PostCard";
 import { RelationActions } from "../components/RelationActions";
+import { GitHubProjects } from "../components/GitHubProjects";
 
 interface PublicUser {
   username: string;
@@ -21,6 +22,7 @@ export default function UserProfile() {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [reputation, setReputation] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
@@ -32,12 +34,13 @@ export default function UserProfile() {
     setLoading(true);
     setError(null);
     Promise.all([
-      api<{ ok: true; user: PublicUser; profile: Profile }>(`/api/profiles/${username}`),
+      api<{ ok: true; user: PublicUser; profile: Profile; reputation: number }>(`/api/profiles/${username}`),
       api<{ ok: true; posts: Post[] }>(`/api/posts/user/${username}`),
     ])
       .then(([p, ps]) => {
         setUser(p.user);
         setProfile(p.profile);
+        setReputation(p.reputation);
         setPosts(ps.posts);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't load this profile"))
@@ -81,7 +84,14 @@ export default function UserProfile() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h1 className="text-2xl font-bold">{profile.displayName}</h1>
-                  <p className="text-sm text-mist-600">@{user.username}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-mist-600">@{user.username}</p>
+                    {reputation > 0 && (
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400" title="Reputation from likes, comments, posts & friends">
+                        ⚡ {reputation.toLocaleString()} rep
+                      </span>
+                    )}
+                  </div>
                   {profile.headline && <p className="mt-1 text-mist-400">{profile.headline}</p>}
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-mist-400">
                     {profile.location && <span>📍 {profile.location}</span>}
@@ -125,8 +135,11 @@ export default function UserProfile() {
               </div>
             </div>
 
+            {/* GitHub Projects — live from GitHub API */}
+            <GitHubProjects username={username!} />
+
             {/* Posts */}
-            <h2 className="mb-3 px-1 font-semibold">
+            <h2 className="mb-3 mt-4 px-1 font-semibold">
               Posts {posts.length > 0 && <span className="text-mist-600">({posts.length})</span>}
             </h2>
 

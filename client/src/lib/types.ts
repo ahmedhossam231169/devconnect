@@ -159,3 +159,28 @@ export interface PageDetail extends PageListItem {
   createdAt: string;
   isAdmin: boolean;
 }
+
+// ---------- Group 4: GitHub projects, Reputation, Shortlist ----------
+
+export interface GitHubProject {
+  name: string;
+  url: string;
+  description: string | null;
+  language: string | null;
+  stars: number;
+  forks: number;
+  updatedAt: string;
+}
+
+export interface ShortlistCandidate {
+  id: string;
+  note: string | null;
+  createdAt: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  headline: string | null;
+  specialty: string | null;
+  yearsExperience: number | null;
+  availability: string | null;
+}

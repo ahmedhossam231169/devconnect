@@ -23,7 +23,7 @@ export default function Login() {
         { method: "POST", body: JSON.stringify({ identifier, password }) }
       );
       setSession(res.token, res.user);
-      navigate("/feed");
+      navigate(res.user.profile.onboarded ? "/feed" : "/onboarding");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server");
     } finally {

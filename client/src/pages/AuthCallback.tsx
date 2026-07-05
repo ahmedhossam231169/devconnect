@@ -19,7 +19,7 @@ export default function AuthCallback() {
     api<{ ok: true; user: AuthUser }>("/api/auth/me")
       .then((res) => {
         setSession(token, res.user);
-        navigate("/feed");
+        navigate(res.user.profile.onboarded ? "/feed" : "/onboarding");
       })
       .catch(() => navigate("/login"));
   }, [params, setSession, navigate]);

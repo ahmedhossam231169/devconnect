@@ -63,6 +63,8 @@ model User {
   reportsMade    Report[] @relation("ReportsMade")
   pageAdminships PageAdmin[]    @relation("PageAdminships")
   pageFollowing  PageFollower[] @relation("PageFollowing")
+  shortlistsMade ShortlistEntry[] @relation("ShortlistsMade")
+  shortlistedAs  ShortlistEntry[] @relation("ShortlistedAs")
   comments Comment[]
   likes    Like[]
 }
@@ -82,6 +84,8 @@ model Profile {
   availability    Availability  @default(NOT_LOOKING)
   websiteUrl      String?
   githubUrl       String?
+  githubUsername  String? // للـ GitHub projects import
+  onboarded       Boolean       @default(false) // خلّص خطوات الترحيب؟
   skills          ProfileSkill[]
 
   @@index([specialty, yearsExperience, availability]) // فهرس مخصوص لفلتر الـ HR
@@ -364,4 +368,20 @@ model PageFollower {
 
   @@id([pageId, userId])
   @@index([userId])
+}
+
+// ---------- Group 4: Recruiter Shortlist ----------
+
+model ShortlistEntry {
+  id          String   @id @default(cuid())
+  recruiterId String   // الـ HR اللي حفظ المرشح
+  candidateId String   // المرشح المحفوظ
+  note        String?  // ملاحظات الـ HR الخاصة
+  createdAt   DateTime @default(now())
+
+  recruiter User @relation("ShortlistsMade", fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidate User @relation("ShortlistedAs", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([recruiterId, candidateId]) // مايتكررش نفس المرشح عند نفس الـ HR
+  @@index([recruiterId, createdAt])
 }

@@ -34,7 +34,7 @@ export default function Register() {
         { method: "POST", body: JSON.stringify({ ...form, role }) }
       );
       setSession(res.token, res.user);
-      navigate("/feed");
+      navigate("/onboarding");
     } catch (err) {
       if (err instanceof ApiError) {
         // أخطاء الـ Zod بتظهر تحت كل حقل لوحده

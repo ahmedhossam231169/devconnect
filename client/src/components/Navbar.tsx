@@ -30,6 +30,7 @@ export function Navbar() {
         { to: "/communities", label: "Communities" },
         { to: "/pages", label: "Pages" },
         { to: "/talent", label: "🎯 Talent Search" },
+        { to: "/shortlist", label: "⭐ Shortlist" },
       ]
     : [
         { to: "/feed", label: "Feed" },

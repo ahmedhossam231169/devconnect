@@ -19,6 +19,8 @@ import UserProfile from "./pages/UserProfile";
 import Friends from "./pages/Friends";
 import Pages from "./pages/Pages";
 import PageDetail from "./pages/PageDetail";
+import Onboarding from "./pages/Onboarding";
+import Shortlist from "./pages/Shortlist";
 
 export default function App() {
   return (
@@ -41,6 +43,8 @@ export default function App() {
           <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
           <Route path="/pages" element={<ProtectedRoute><Pages /></ProtectedRoute>} />
           <Route path="/pages/:slug" element={<ProtectedRoute><PageDetail /></ProtectedRoute>} />
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+          <Route path="/shortlist" element={<RecruiterRoute><Shortlist /></RecruiterRoute>} />
 
           {/* المرحلة 5 — recruiters بس */}
           <Route path="/talent" element={<RecruiterRoute><TalentSearch /></RecruiterRoute>} />
