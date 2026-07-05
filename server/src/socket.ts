@@ -101,6 +101,12 @@ export function setupSocket(httpServer: HttpServer) {
           io.to(`user:${p.userId}`).emit("message:new", message);
         }
 
+        // إشعار إيميل للأطراف اللي مش online (غير المرسِل نفسه)
+        // بيشتغل بس لو SMTP متظبط — غير كده الدالة بتتجاهل بهدوء
+        notifyOfflineRecipients(participants, userId, message).catch((e) =>
+          console.error("[offline email]", e)
+        );
+
         ack?.({ ok: true, message });
       } catch (err) {
         // الـ socket handlers برضه ليها error handling — مفيش crash
@@ -145,4 +151,56 @@ export function setupSocket(httpServer: HttpServer) {
   });
 
   return io;
+}
+
+// ---------------------------------------------------------------
+// إشعار إيميل للأطراف اللي مش متصلين دلوقتي
+// عشان ما يفوتهمش إن حد بعتلهم رسالة وهم offline
+// ---------------------------------------------------------------
+import { sendEmail } from "./lib/email.js";
+
+async function notifyOfflineRecipients(
+  participants: { userId: string }[],
+  senderId: string,
+  message: { body: string; codeContent?: string | null }
+) {
+  // المستقبِلين اللي مش online ومش المرسِل نفسه
+  const offlineIds = participants
+    .map((p) => p.userId)
+    .filter((id) => id !== senderId && !isOnline(id));
+
+  if (offlineIds.length === 0) return;
+
+  const sender = await prisma.user.findUnique({
+    where: { id: senderId },
+    select: { username: true, profile: { select: { displayName: true } } },
+  });
+  const senderName = sender?.profile?.displayName ?? sender?.username ?? "Someone";
+
+  const recipients = await prisma.user.findMany({
+    where: { id: { in: offlineIds } },
+    select: { email: true, profile: { select: { displayName: true } } },
+  });
+
+  const preview = message.codeContent ? "sent you a code snippet" : `: "${message.body.slice(0, 80)}"`;
+  const clientUrl = (process.env.CLIENT_URL || "").split(",")[0] || "";
+
+  for (const r of recipients) {
+    await sendEmail(
+      r.email,
+      `${senderName} messaged you on DevConnect`,
+      `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color: #6C5CE7;">⌁ DevConnect</h2>
+          <p><b>${senderName}</b> ${preview}</p>
+          <a href="${clientUrl}/messages"
+             style="display:inline-block; background:#6C5CE7; color:#fff; padding:12px 24px;
+                    border-radius:8px; text-decoration:none; font-weight:bold; margin:16px 0;">
+            Open DevConnect
+          </a>
+          <p style="color:#888; font-size:13px;">You're getting this because you were offline when the message arrived.</p>
+        </div>
+      `
+    ).catch(() => {}); // فشل إيميل واحد ما يوقفش الباقي
+  }
 }

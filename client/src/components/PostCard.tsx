@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo, type Post, type Comment } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
+import { Markdown } from "./Markdown";
 
 export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: string) => void }) {
   const { user } = useAuth();
@@ -161,7 +162,7 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
       ) : (
         <>
           {p.title && <h2 className="mb-1 text-lg font-bold">{p.title}</h2>}
-          <p className="whitespace-pre-wrap text-mist-100">{p.body}</p>
+          <div className="text-mist-100"><Markdown>{p.body}</Markdown></div>
           {p.type === "SNIPPET" && p.codeContent && p.codeLanguage && (
             <div className="mt-3">
               <CodeBlock code={p.codeContent} language={p.codeLanguage} />

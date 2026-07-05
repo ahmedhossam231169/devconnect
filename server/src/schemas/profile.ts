@@ -18,6 +18,7 @@ export const updateProfileSchema = z.object({
   availability: z.enum(["OPEN_TO_WORK", "NOT_LOOKING", "FREELANCE_ONLY"]).optional(),
   websiteUrl: z.string().url("Enter a valid URL").or(z.literal("")).optional(),
   githubUrl: z.string().url("Enter a valid URL").or(z.literal("")).optional(),
+  avatarUrl: z.string().url().or(z.literal("")).optional(),
   // الـ skills بتتبعت كـ array من { name, years } — بنعمل upsert لكل واحدة
   skills: z
     .array(

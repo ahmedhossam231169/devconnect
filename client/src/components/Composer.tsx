@@ -84,7 +84,9 @@ export function Composer({
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-
+      <p className="mt-1 text-xs text-mist-600">
+        ✨ Markdown supported — **bold**, `code`, lists, and [links](url)
+      </p>
       {type === "SNIPPET" && (
         <div className="mt-2 space-y-2">
           <select

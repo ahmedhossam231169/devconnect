@@ -16,6 +16,7 @@ import { friendsRouter } from "./routes/friends.js";
 import { moderationRouter } from "./routes/moderation.js";
 import { pagesRouter } from "./routes/pages.js";
 import { shortlistRouter } from "./routes/shortlist.js";
+import { searchRouter } from "./routes/search.js";
 import { setupSocket } from "./socket.js";
 import { getAllowedOrigins } from "./lib/cors.js";
 import { authLimiter, apiLimiter } from "./middleware/rateLimit.js";
@@ -61,6 +62,7 @@ app.use("/api/friends", friendsRouter);
 app.use("/api/moderation", moderationRouter);
 app.use("/api/pages", pagesRouter);
 app.use("/api/shortlist", shortlistRouter);
+app.use("/api/search", searchRouter);
 
 // ---------- Error handling (لازم يفضلوا آخر حاجة) ----------
 app.use(notFoundHandler);

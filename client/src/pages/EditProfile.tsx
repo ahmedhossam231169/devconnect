@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import { SPECIALTIES, type Profile, type Skill, type Specialty, type Availability } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { ImageUpload } from "../components/ImageUpload";
 
 const AVAILABILITY_LABELS: Record<Availability, string> = {
   OPEN_TO_WORK: "🟢 Open to work",
@@ -62,6 +63,7 @@ export default function EditProfile() {
           availability: profile.availability,
           websiteUrl: profile.websiteUrl ?? "",
           githubUrl: profile.githubUrl ?? "",
+          avatarUrl: profile.avatarUrl ?? "",
           skills: profile.skills,
         }),
       });
@@ -88,6 +90,14 @@ export default function EditProfile() {
         {!loading && profile && (
           <div className="space-y-6">
             <div className="card space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Profile photo</label>
+                <ImageUpload
+                  currentUrl={profile.avatarUrl}
+                  onUploaded={(url) => update("avatarUrl", url)}
+                  label="Upload photo"
+                />
+              </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium">Display name</label>
                 <input

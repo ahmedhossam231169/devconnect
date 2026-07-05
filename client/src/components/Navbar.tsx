@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { NotificationBell } from "./NotificationBell";
+import { SearchBar } from "./SearchBar";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -52,13 +53,7 @@ export function Navbar() {
           {links.map((l) => <span key={l.to}>{navLink(l.to, l.label)}</span>)}
         </div>
 
-        {!isRecruiter && (
-          <input
-            className="input-field hidden max-w-xs flex-1 !py-2 text-sm lg:block"
-            placeholder="Search projects, developers..."
-            aria-label="Search"
-          />
-        )}
+        <SearchBar />
 
         <div className="flex items-center gap-3">
           {isRecruiter && (

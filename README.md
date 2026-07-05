@@ -83,3 +83,10 @@ npm run dev                 # http://localhost:5173
 - [x] Onboarding — 3-step guided setup after first signup (specialty, skills, availability)
 - [x] Reputation — activity-based score (likes, comments, posts, friends) shown on profiles
 - [x] Recruiter shortlist — save candidates with private notes ("Saved Candidates")
+
+## Group 5 — Enhancements
+- [x] Real search — live search across developers and posts with debounced dropdown
+- [x] Markdown in posts — bold, code, lists, links (XSS-safe)
+- [x] Image upload — Cloudinary unsigned upload for avatars
+- [x] Email notifications — offline users get emailed when they receive a message
+- [x] Open Graph tags — rich link previews on WhatsApp, LinkedIn, Twitter
