@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UserPlus, UserCheck, Clock, MoreHorizontal, Flag, Ban } from "lucide-react";
 import { api } from "../lib/api";
 import type { FriendState, RelationStatus } from "../lib/types";
 
@@ -82,25 +83,31 @@ export function RelationActions({ username }: { username: string }) {
 
   if (loading) return null;
 
+  const friendIcon =
+    state === "friends" ? <UserCheck size={15} />
+    : state === "request_sent" ? <Clock size={15} />
+    : state === "request_received" ? <UserCheck size={15} />
+    : <UserPlus size={15} />;
+
   const friendLabel =
-    state === "friends" ? "✓ Friends"
-    : state === "request_sent" ? "Request sent"
-    : state === "request_received" ? "Accept request"
-    : "+ Add friend";
+    state === "friends" ? "Friends"
+    : state === "request_sent" ? "Requested"
+    : state === "request_received" ? "Accept"
+    : "Add friend";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         onClick={friendAction}
         disabled={busy}
         className={
-          "rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50 " +
+          "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50 " +
           (state === "friends" || state === "request_sent"
             ? "border border-ink-700 text-mist-100 hover:bg-ink-900"
             : "bg-brand-500 text-white hover:bg-brand-600")
         }
       >
-        {friendLabel}
+        {friendIcon} {friendLabel}
       </button>
 
       {/* لو في طلب وارد، نضيف زرار رفض */}
@@ -123,16 +130,16 @@ export function RelationActions({ username }: { username: string }) {
 
       {/* قائمة الإشراف */}
       <div className="relative">
-        <button onClick={() => setMenuOpen((o) => !o)} className="rounded-lg border border-ink-700 px-2.5 py-2 text-mist-400 hover:bg-ink-900" aria-label="More options">
-          ⋯
+        <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center justify-center rounded-lg border border-ink-700 px-2 py-2 text-mist-400 hover:bg-ink-900" aria-label="More options">
+          <MoreHorizontal size={18} />
         </button>
         {menuOpen && (
           <div className="absolute right-0 z-10 mt-1 w-36 rounded-lg border border-ink-700 bg-ink-800 py-1 text-sm shadow-xl">
-            <button onClick={reportUser} disabled={reporting} className="block w-full px-3 py-1.5 text-left hover:bg-ink-900">
-              🚩 Report
+            <button onClick={reportUser} disabled={reporting} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900">
+              <Flag size={14} /> Report
             </button>
-            <button onClick={blockUser} className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-ink-900">
-              🚫 Block
+            <button onClick={blockUser} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-red-400 hover:bg-ink-900">
+              <Ban size={14} /> Block
             </button>
           </div>
         )}

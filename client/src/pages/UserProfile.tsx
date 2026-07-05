@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import type { Profile, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
 import { PostCard } from "../components/PostCard";
+import { Zap, MapPin, Briefcase, Clock, MessageCircle, Code2, Link2 } from "lucide-react";
 import { RelationActions } from "../components/RelationActions";
 import { GitHubProjects } from "../components/GitHubProjects";
 
@@ -74,39 +75,42 @@ export default function UserProfile() {
           <>
             {/* Profile header */}
             <div className="card mb-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-2xl font-bold">
-                  {profile.avatarUrl ? (
-                    <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    profile.displayName?.[0]?.toUpperCase() ?? "?"
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-2xl font-bold">{profile.displayName}</h1>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-mist-600">@{user.username}</p>
-                    {reputation > 0 && (
-                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400" title="Reputation from likes, comments, posts & friends">
-                        ⚡ {reputation.toLocaleString()} rep
-                      </span>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-2xl font-bold">
+                    {profile.avatarUrl ? (
+                      <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      profile.displayName?.[0]?.toUpperCase() ?? "?"
                     )}
                   </div>
-                  {profile.headline && <p className="mt-1 text-mist-400">{profile.headline}</p>}
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-mist-400">
-                    {profile.location && <span>📍 {profile.location}</span>}
-                    {profile.specialty && <span>💼 {profile.specialty}</span>}
-                    {profile.yearsExperience !== null && <span>⏳ {profile.yearsExperience}y exp</span>}
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-xl font-bold sm:text-2xl">{profile.displayName}</h1>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <p className="text-sm text-mist-600">@{user.username}</p>
+                      {reputation > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400" title="Reputation from likes, comments, posts & friends">
+                          <Zap size={12} /> {reputation.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    {profile.headline && <p className="mt-1 text-sm text-mist-400">{profile.headline}</p>}
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-mist-400">
+                      {profile.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {profile.location}</span>}
+                      {profile.specialty && <span className="inline-flex items-center gap-1"><Briefcase size={12} /> {profile.specialty}</span>}
+                      {profile.yearsExperience !== null && <span className="inline-flex items-center gap-1"><Clock size={12} /> {profile.yearsExperience}y exp</span>}
+                    </div>
                   </div>
                 </div>
-                <div className="shrink-0">
+
+                <div className="shrink-0 sm:ml-auto">
                   {isMe ? (
-                    <Link to="/profile/edit" className="btn-ghost !py-2 text-sm">Edit</Link>
+                    <Link to="/profile/edit" className="btn-ghost !py-2 text-sm">Edit profile</Link>
                   ) : (
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col gap-2 sm:items-end">
                       <RelationActions username={username!} />
-                      <button onClick={messageUser} disabled={startingChat} className="text-sm text-brand-400 hover:underline disabled:opacity-60">
-                        {startingChat ? "..." : "💬 Message"}
+                      <button onClick={messageUser} disabled={startingChat} className="inline-flex items-center justify-center gap-1.5 text-sm text-brand-400 hover:underline disabled:opacity-60">
+                        <MessageCircle size={15} /> {startingChat ? "Opening..." : "Message"}
                       </button>
                     </div>
                   )}
@@ -127,10 +131,10 @@ export default function UserProfile() {
 
               <div className="mt-4 flex gap-4 border-t border-ink-700 pt-3 text-sm">
                 {profile.githubUrl && (
-                  <a href={profile.githubUrl} target="_blank" rel="noreferrer" className="text-mist-400 hover:text-brand-400"> GitHub</a>
+                  <a href={profile.githubUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-mist-400 hover:text-brand-400"><Code2 size={15} /> GitHub</a>
                 )}
                 {profile.websiteUrl && (
-                  <a href={profile.websiteUrl} target="_blank" rel="noreferrer" className="text-mist-400 hover:text-brand-400">🔗 Portfolio</a>
+                  <a href={profile.websiteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-mist-400 hover:text-brand-400"><Link2 size={15} /> Portfolio</a>
                 )}
               </div>
             </div>

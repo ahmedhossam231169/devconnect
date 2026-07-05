@@ -4,6 +4,7 @@ import { useAuth } from "../lib/auth";
 import { getSocket } from "../lib/socket";
 import { timeAgo } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { Users, ArrowLeft, Send } from "lucide-react";
 import { CodeBlock } from "../components/CodeBlock";
 
 interface OtherUser {
@@ -217,7 +218,7 @@ export default function Messages() {
               }
             >
               <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink-700 font-bold">
-                {c.isGroup ? "👥" : (c.other?.profile?.displayName?.[0]?.toUpperCase() ?? "?")}
+                {c.isGroup ? <Users size={18} /> : (c.other?.profile?.displayName?.[0]?.toUpperCase() ?? "?")}
                 <span className="absolute -bottom-0.5 -right-0.5">{dot(c.other?.id)}</span>
               </div>
               <div className="min-w-0 flex-1">
@@ -247,10 +248,10 @@ export default function Messages() {
                 return (
               <div className="flex items-center gap-3 border-b border-ink-700 px-4 py-3">
                 <button onClick={() => setActiveId(null)} className="text-mist-400 md:hidden" aria-label="Back">
-                  ←
+                  <ArrowLeft size={20} />
                 </button>
                 <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ink-700 font-bold">
-                  {isGroup ? "👥" : (other?.profile?.displayName?.[0]?.toUpperCase() ?? "?")}
+                  {isGroup ? <Users size={16} /> : (other?.profile?.displayName?.[0]?.toUpperCase() ?? "?")}
                   {!isGroup && <span className="absolute -bottom-0.5 -right-0.5">{dot(other?.id)}</span>}
                 </div>
                 <div>
@@ -349,7 +350,7 @@ export default function Messages() {
                     disabled={codeMode ? !codeDraft.trim() : !draft.trim()}
                     className="btn-primary !py-2 text-sm disabled:opacity-50"
                   >
-                    Send
+                    <Send size={15} /> Send
                   </button>
                 </div>
               </div>

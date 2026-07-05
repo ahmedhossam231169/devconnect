@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import type { ShortlistCandidate } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { X, StickyNote } from "lucide-react";
 
 const AVAIL_BADGE: Record<string, { label: string; cls: string }> = {
   OPEN_TO_WORK: { label: "Open to work", cls: "bg-green-500/15 text-green-400" },
@@ -83,7 +84,7 @@ export default function Shortlist() {
                       {badge && <span className={"rounded-full px-2 py-0.5 font-semibold " + badge.cls}>{badge.label}</span>}
                     </div>
                   </div>
-                  <button onClick={() => remove(c.username)} className="shrink-0 text-sm text-mist-600 hover:text-red-400" aria-label="Remove">✕</button>
+                  <button onClick={() => remove(c.username)} className="shrink-0 text-sm text-mist-600 hover:text-red-400" aria-label="Remove"><X size={16} /></button>
                 </div>
 
                 {/* الملاحظات */}
@@ -108,7 +109,7 @@ export default function Shortlist() {
                       className="w-full text-left text-sm"
                     >
                       {c.note ? (
-                        <p className="whitespace-pre-wrap text-mist-100">📝 {c.note}</p>
+                        <p className="flex items-start gap-1.5 whitespace-pre-wrap text-mist-100"><StickyNote size={14} className="mt-0.5 shrink-0" /> {c.note}</p>
                       ) : (
                         <span className="text-mist-600 hover:text-brand-400">+ Add a note</span>
                       )}

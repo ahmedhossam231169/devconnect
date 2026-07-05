@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
+import { MailCheck } from "lucide-react";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -34,7 +35,7 @@ export default function ForgotPassword() {
       <div className="card w-full max-w-md">
         {sent ? (
           <div className="text-center">
-            <div className="mb-3 text-4xl">📬</div>
+            <div className="mb-3 flex justify-center"><MailCheck size={40} className="text-brand-400" /></div>
             <h1 className="text-xl font-bold">Check your email</h1>
             <p className="mt-2 text-sm text-mist-400">
               If an account exists for <b>{email}</b>, we've sent a reset link.

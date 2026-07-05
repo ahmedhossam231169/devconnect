@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError, API_BASE_URL } from "../lib/api";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth, type AuthUser } from "../lib/auth";
 
 export default function Login() {
@@ -92,7 +93,7 @@ export default function Login() {
                 className="absolute inset-y-0 right-3 text-sm text-mist-400 hover:text-mist-100"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "🙈" : "👁"}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             <div className="mt-1.5 text-right">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api, ApiError } from "../lib/api";
 import type { Post, PostType } from "../lib/types";
+import { PenLine, Code2, HelpCircle, Sparkles } from "lucide-react";
 
 const LANGUAGES = [
   "javascript", "typescript", "python", "rust", "go",
@@ -50,25 +51,25 @@ export function Composer({
     }
   }
 
-  const tab = (t: PostType, label: string) => (
+  const tab = (t: PostType, label: string, Icon: typeof PenLine) => (
     <button
       type="button"
       onClick={() => setType(t)}
       className={
-        "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors " +
+        "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors " +
         (type === t ? "bg-brand-500 text-white" : "text-mist-400 hover:text-mist-100")
       }
     >
-      {label}
+      <Icon size={15} /> {label}
     </button>
   );
 
   return (
     <div className="card !p-4">
       <div className="mb-3 flex gap-1 rounded-lg bg-ink-900 p-1">
-        {tab("TEXT", "✍️ Post")}
-        {tab("SNIPPET", "</> Snippet")}
-        {tab("QUESTION", "❓ Question")}
+        {tab("TEXT", "Post", PenLine)}
+        {tab("SNIPPET", "Snippet", Code2)}
+        {tab("QUESTION", "Question", HelpCircle)}
       </div>
 
       <input
@@ -84,8 +85,8 @@ export function Composer({
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-      <p className="mt-1 text-xs text-mist-600">
-        ✨ Markdown supported — **bold**, `code`, lists, and [links](url)
+      <p className="mt-1 flex items-center gap-1 text-xs text-mist-600">
+        <Sparkles size={12} /> Markdown supported — **bold**, `code`, lists, and [links](url)
       </p>
       {type === "SNIPPET" && (
         <div className="mt-2 space-y-2">

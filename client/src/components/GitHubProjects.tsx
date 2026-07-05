@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { GitHubProject } from "../lib/types";
+import { Star, GitFork, Code2 } from "lucide-react";
 
 const LANG_COLOR: Record<string, string> = {
   JavaScript: "#f1e05a", TypeScript: "#3178c6", Python: "#3572A5", Rust: "#dea584",
@@ -47,14 +48,14 @@ export function GitHubProjects({ username }: { username: string }) {
           >
             <div className="flex items-center justify-between">
               <h3 className="truncate font-semibold text-brand-400">{p.name}</h3>
-              <span className="shrink-0 text-xs text-mist-400">⭐ {p.stars}</span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-xs text-mist-400"><Star size={12} /> {p.stars}</span>
             </div>
             {p.description && <p className="mt-1 line-clamp-2 text-sm text-mist-400">{p.description}</p>}
             {p.language && (
               <div className="mt-3 flex items-center gap-1.5 text-xs text-mist-400">
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: LANG_COLOR[p.language] ?? "#888" }} />
                 {p.language}
-                {p.forks > 0 && <span className="ml-2">🍴 {p.forks}</span>}
+                {p.forks > 0 && <span className="ml-2 inline-flex items-center gap-1"><GitFork size={12} /> {p.forks}</span>}
               </div>
             )}
           </a>

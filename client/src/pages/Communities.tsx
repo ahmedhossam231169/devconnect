@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import { COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityListItem } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { Users } from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, string> = {
   Frontend: "⚛️", Backend: "⚙️", "AI & ML": "🧠", DevOps: "☸️", Mobile: "📱", Data: "📊",
@@ -161,7 +162,7 @@ export default function Communities() {
               </div>
               <h3 className="font-bold">{c.name}</h3>
               <p className="mt-1 line-clamp-2 text-sm text-mist-400">{c.description}</p>
-              <p className="mt-2 text-xs text-mist-600">👥 {c.memberCount} members</p>
+              <p className="mt-2 inline-flex items-center gap-1 text-xs text-mist-600"><Users size={12} /> {c.memberCount} members</p>
               <button
                 onClick={() => toggleJoin(c)}
                 className={

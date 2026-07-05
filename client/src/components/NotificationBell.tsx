@@ -3,12 +3,21 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { timeAgo, type AppNotification } from "../lib/types";
+import { Bell, Heart, MessageCircle, Users, UserPlus, UserCheck, UserRound } from "lucide-react";
 
-const TYPE_ICON: Record<string, string> = {
-  POST_LIKE: "❤️",
-  POST_COMMENT: "💬",
-  COMMUNITY_JOIN: "👥",
+const TYPE_ICON: Record<string, typeof Bell> = {
+  POST_LIKE: Heart,
+  POST_COMMENT: MessageCircle,
+  COMMUNITY_JOIN: Users,
+  FRIEND_REQUEST: UserPlus,
+  FRIEND_ACCEPT: UserCheck,
+  NEW_FOLLOWER: UserRound,
 };
+
+function NotifIcon({ type }: { type: string }) {
+  const Icon = TYPE_ICON[type] ?? Bell;
+  return <Icon size={16} className="text-brand-400" />;
+}
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -68,7 +77,7 @@ export function NotificationBell() {
         className="relative rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100"
         aria-label="Notifications"
       >
-        🔔
+        <Bell size={20} />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -89,7 +98,7 @@ export function NotificationBell() {
 
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 && (
-              <p className="p-4 text-center text-sm text-mist-400">You're all caught up 🎉</p>
+              <p className="p-4 text-center text-sm text-mist-400">You're all caught up</p>
             )}
             {notifications.map((n) => (
               <Link
@@ -101,7 +110,7 @@ export function NotificationBell() {
                   (n.read ? "" : "bg-brand-500/5")
                 }
               >
-                <span className="shrink-0">{TYPE_ICON[n.type] ?? "🔔"}</span>
+                <span className="shrink-0"><NotifIcon type={n.type} /></span>
                 <div className="min-w-0 flex-1">
                   <p className={n.read ? "text-mist-300" : "text-mist-100"}>{n.message}</p>
                   <p className="mt-0.5 text-xs text-mist-600">{timeAgo(n.createdAt)}</p>

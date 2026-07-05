@@ -136,9 +136,9 @@ export default function TalentSearch() {
                 onChange={(e) => setFilters((f) => ({ ...f, availability: e.target.value as Availability | "" }))}
               >
                 <option value="">Any</option>
-                <option value="OPEN_TO_WORK">🟢 Open to work</option>
-                <option value="FREELANCE_ONLY">🔵 Freelance only</option>
-                <option value="NOT_LOOKING">⚪ Not looking</option>
+                <option value="OPEN_TO_WORK">Open to work</option>
+                <option value="FREELANCE_ONLY">Freelance only</option>
+                <option value="NOT_LOOKING">Not looking</option>
               </select>
             </div>
 

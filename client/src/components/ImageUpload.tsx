@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Camera } from "lucide-react";
 
 // ---------------------------------------------------------------
 // رفع صورة لـ Cloudinary مباشرة من المتصفح (unsigned upload)
@@ -86,7 +87,7 @@ export function ImageUpload({
         {preview ? (
           <img src={preview} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-2xl text-mist-600">📷</span>
+          <Camera size={24} className="text-mist-600" />
         )}
       </div>
       <div>

@@ -12,10 +12,10 @@ interface CandidateUser {
   createdAt: string;
 }
 
-const AVAILABILITY_BADGE: Record<string, string> = {
-  OPEN_TO_WORK: "🟢 Open to Work",
-  FREELANCE_ONLY: "🔵 Freelance Only",
-  NOT_LOOKING: "⚪ Not Looking",
+const AVAILABILITY_BADGE: Record<string, { label: string; dot: string }> = {
+  OPEN_TO_WORK: { label: "Open to Work", dot: "bg-green-500" },
+  FREELANCE_ONLY: { label: "Freelance Only", dot: "bg-blue-500" },
+  NOT_LOOKING: { label: "Not Looking", dot: "bg-mist-600" },
 };
 
 export default function CandidateDetail() {
@@ -56,7 +56,7 @@ export default function CandidateDetail() {
       <Navbar />
       <main className="mx-auto max-w-4xl px-4 py-6">
         <Link to="/talent" className="mb-4 inline-block text-sm text-mist-400 hover:text-mist-100">
-          ← Back to Talent Search
+          Back to Talent Search
         </Link>
 
         {loading && <p className="py-8 text-center text-sm text-mist-400">Loading profile...</p>}
@@ -85,8 +85,9 @@ export default function CandidateDetail() {
                       </p>
                     </div>
                   </div>
-                  <span className="rounded-full border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm font-semibold">
-                    {AVAILABILITY_BADGE[profile.availability]}
+                  <span className="inline-flex items-center gap-2 rounded-full border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm font-semibold">
+                    <span className={"h-2 w-2 rounded-full " + (AVAILABILITY_BADGE[profile.availability]?.dot ?? "bg-mist-600")} />
+                    {AVAILABILITY_BADGE[profile.availability]?.label ?? profile.availability}
                   </span>
                 </div>
 
@@ -151,7 +152,7 @@ export default function CandidateDetail() {
                   disabled={startingChat}
                   className="btn-primary w-full justify-center disabled:opacity-60"
                 >
-                  {startingChat ? "Opening..." : "💬 Message"}
+                  {startingChat ? "Opening..." : "Message"}
                 </button>
                 {profile.githubUrl && (
                   <a href={profile.githubUrl} target="_blank" rel="noreferrer" className="btn-ghost mt-2 w-full justify-center text-sm">

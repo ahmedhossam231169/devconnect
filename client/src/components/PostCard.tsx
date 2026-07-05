@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { timeAgo, type Post, type Comment } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
 import { Markdown } from "./Markdown";
+import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: string) => void }) {
   const { user } = useAuth();
@@ -132,11 +133,11 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
           )}
           {isMine && (
             <div className="relative">
-              <button onClick={() => setMenuOpen((o) => !o)} className="rounded px-2 py-1 text-mist-400 hover:bg-ink-900" aria-label="Post options">⋯</button>
+              <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center rounded px-2 py-1 text-mist-400 hover:bg-ink-900" aria-label="Post options"><MoreHorizontal size={18} /></button>
               {menuOpen && (
                 <div className="absolute right-0 z-10 mt-1 w-32 rounded-lg border border-ink-700 bg-ink-800 py-1 text-sm shadow-xl">
-                  <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="block w-full px-3 py-1.5 text-left hover:bg-ink-900">✏️ Edit</button>
-                  <button onClick={() => { deletePost(); setMenuOpen(false); }} className="block w-full px-3 py-1.5 text-left text-red-400 hover:bg-ink-900">🗑 Delete</button>
+                  <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900"><Pencil size={14} /> Edit</button>
+                  <button onClick={() => { deletePost(); setMenuOpen(false); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-red-400 hover:bg-ink-900"><Trash2 size={14} /> Delete</button>
                 </div>
               )}
             </div>
@@ -178,10 +179,10 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
           className={"flex items-center gap-1.5 transition-colors hover:text-red-400 " + (liked ? "text-red-400" : "")}
           aria-pressed={liked}
         >
-          {liked ? "❤️" : "🤍"} {likeCount}
+          <Heart size={16} className={liked ? "fill-current" : ""} /> {likeCount}
         </button>
         <button onClick={openComments} className="flex items-center gap-1.5 hover:text-mist-100">
-          💬 {commentCount}
+          <MessageCircle size={16} /> {commentCount}
         </button>
       </div>
 

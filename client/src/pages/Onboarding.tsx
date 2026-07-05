@@ -4,10 +4,10 @@ import { api, ApiError } from "../lib/api";
 import { SPECIALTIES, type Specialty, type Availability } from "../lib/types";
 import { useAuth } from "../lib/auth";
 
-const AVAILABILITY_OPTIONS: { value: Availability; label: string }[] = [
-  { value: "OPEN_TO_WORK", label: "🟢 Open to work" },
-  { value: "FREELANCE_ONLY", label: "🔵 Freelance only" },
-  { value: "NOT_LOOKING", label: "⚪ Not looking" },
+const AVAILABILITY_OPTIONS: { value: Availability; label: string; dot: string }[] = [
+  { value: "OPEN_TO_WORK", label: "Open to work", dot: "bg-green-500" },
+  { value: "FREELANCE_ONLY", label: "Freelance only", dot: "bg-blue-500" },
+  { value: "NOT_LOOKING", label: "Not looking", dot: "bg-mist-600" },
 ];
 
 // خطوات الترحيب — نجمع الأساسيات اللي فلتر الـ HR بيعتمد عليها
@@ -149,6 +149,7 @@ export default function Onboarding() {
               {AVAILABILITY_OPTIONS.map((o) => (
                 <label key={o.value} className="flex cursor-pointer items-center gap-3 rounded-lg border border-ink-700 px-3 py-2 hover:bg-ink-900">
                   <input type="radio" checked={availability === o.value} onChange={() => setAvailability(o.value)} className="accent-brand-500" />
+                  <span className={"h-2 w-2 rounded-full " + o.dot} />
                   {o.label}
                 </label>
               ))}
@@ -159,7 +160,7 @@ export default function Onboarding() {
             <div className="flex gap-2">
               <button onClick={() => setStep(2)} className="btn-ghost !py-2.5">Back</button>
               <button onClick={finish} disabled={saving} className="btn-primary flex-1 justify-center disabled:opacity-60">
-                {saving ? "Saving..." : "Finish setup 🎉"}
+                {saving ? "Saving..." : "Finish setup"}
               </button>
             </div>
           </>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
+import { CheckCircle2 } from "lucide-react";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
@@ -61,7 +62,7 @@ export default function ResetPassword() {
       <div className="card w-full max-w-md">
         {done ? (
           <div className="text-center">
-            <div className="mb-3 text-4xl">✅</div>
+            <div className="mb-3 flex justify-center"><CheckCircle2 size={40} className="text-green-400" /></div>
             <h1 className="text-xl font-bold">Password updated</h1>
             <p className="mt-2 text-sm text-mist-400">Redirecting you to sign in...</p>
           </div>

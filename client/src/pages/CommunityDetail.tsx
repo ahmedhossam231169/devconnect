@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { CommunityDetail as CommunityDetailType, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { ArrowLeft } from "lucide-react";
 import { Composer } from "../components/Composer";
 import { PostCard } from "../components/PostCard";
 
@@ -44,8 +45,8 @@ export default function CommunityDetail() {
     <>
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-6">
-        <Link to="/communities" className="mb-4 inline-block text-sm text-mist-400 hover:text-mist-100">
-          ← Back to Communities
+        <Link to="/communities" className="mb-4 inline-flex items-center gap-1.5 text-sm text-mist-400 hover:text-mist-100">
+          <ArrowLeft size={15} /> Back to Communities
         </Link>
 
         {loading && <p className="py-8 text-center text-sm text-mist-400">Loading...</p>}

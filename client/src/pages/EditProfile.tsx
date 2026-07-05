@@ -5,9 +5,9 @@ import { Navbar } from "../components/Navbar";
 import { ImageUpload } from "../components/ImageUpload";
 
 const AVAILABILITY_LABELS: Record<Availability, string> = {
-  OPEN_TO_WORK: "🟢 Open to work",
-  FREELANCE_ONLY: "🔵 Freelance only",
-  NOT_LOOKING: "⚪ Not looking",
+  OPEN_TO_WORK: "Open to work",
+  FREELANCE_ONLY: "Freelance only",
+  NOT_LOOKING: "Not looking",
 };
 
 export default function EditProfile() {

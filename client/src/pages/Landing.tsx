@@ -37,7 +37,7 @@ export default function Landing() {
       {/* Hero — نفس روح الـ mockup */}
       <section className="mx-auto max-w-6xl px-6 py-24">
         <span className="mb-6 inline-block rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-400">
-          🚀 Beta — under construction
+          Beta — under construction
         </span>
         <h1 className="max-w-2xl text-5xl font-extrabold leading-tight md:text-6xl">
           The Architecture of <span className="text-brand-400">Connection.</span>

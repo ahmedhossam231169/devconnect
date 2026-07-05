@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Menu, X, Sun, Moon, LogOut } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
 import { NotificationBell } from "./NotificationBell";
@@ -19,8 +20,8 @@ export function Navbar() {
         { to: "/friends", label: "Friends" },
         { to: "/communities", label: "Communities" },
         { to: "/pages", label: "Pages" },
-        { to: "/talent", label: "🎯 Talent Search" },
-        { to: "/shortlist", label: "⭐ Shortlist" },
+        { to: "/talent", label: "Talent Search" },
+        { to: "/shortlist", label: "Shortlist" },
       ]
     : [
         { to: "/feed", label: "Feed" },
@@ -56,7 +57,7 @@ export function Navbar() {
             className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 md:hidden"
             aria-label="Open menu"
           >
-            ☰
+            <Menu size={20} />
           </button>
 
           <Link to="/feed" className="shrink-0 text-lg font-extrabold text-brand-400">
@@ -76,7 +77,7 @@ export function Navbar() {
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               title={theme === "dark" ? "Light mode" : "Dark mode"}
             >
-              {theme === "dark" ? "☀️" : "🌙"}
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <NotificationBell />
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white">
@@ -117,7 +118,7 @@ export function Navbar() {
             className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800"
             aria-label="Close menu"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 
@@ -146,13 +147,14 @@ export function Navbar() {
             onClick={toggle}
             className="mb-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-mist-400 hover:bg-ink-800"
           >
-            {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
           </button>
           <button
             onClick={logout}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-400 hover:bg-ink-800"
           >
-            ⏻ Logout
+            <LogOut size={16} /> Logout
           </button>
         </div>
       </aside>

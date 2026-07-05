@@ -3,10 +3,16 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { PAGE_CATEGORIES, type PageCategory, type PageListItem } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { Building2, Rocket, Globe, Users, Package, FileText, Plus } from "lucide-react";
 
-const CATEGORY_ICON: Record<string, string> = {
-  Company: "🏢", Project: "🚀", "Open Source": "🌐", Community: "👥", Product: "📦",
+const CATEGORY_ICON: Record<string, typeof Building2> = {
+  Company: Building2, Project: Rocket, "Open Source": Globe, Community: Users, Product: Package,
 };
+
+function CategoryIcon({ category, size = 22 }: { category: string; size?: number }) {
+  const Icon = CATEGORY_ICON[category] ?? FileText;
+  return <Icon size={size} />;
+}
 
 export default function Pages() {
   const [pages, setPages] = useState<PageListItem[]>([]);
@@ -86,7 +92,7 @@ export default function Pages() {
             </p>
           </div>
           <button onClick={() => setShowCreate((s) => !s)} className="btn-primary shrink-0 !py-2 text-sm">
-            + Create Page
+            <Plus size={16} /> Create Page
           </button>
         </div>
 
@@ -123,7 +129,7 @@ export default function Pages() {
             <div key={p.id} className="card !p-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-500/30 to-ink-700 text-2xl">
-                  {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" /> : (CATEGORY_ICON[p.category] ?? "📄")}
+                  {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="h-full w-full object-cover" /> : <CategoryIcon category={p.category} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link to={`/pages/${p.slug}`} className="font-bold hover:underline">{p.name}</Link>

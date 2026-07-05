@@ -3,12 +3,18 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { PageDetail as PageDetailType, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { Building2, Rocket, Globe, Users, Package, FileText, ArrowLeft } from "lucide-react";
 import { Composer } from "../components/Composer";
 import { PostCard } from "../components/PostCard";
 
-const CATEGORY_ICON: Record<string, string> = {
-  Company: "🏢", Project: "🚀", "Open Source": "🌐", Community: "👥", Product: "📦",
+const CATEGORY_ICON: Record<string, typeof Building2> = {
+  Company: Building2, Project: Rocket, "Open Source": Globe, Community: Users, Product: Package,
 };
+
+function CategoryIcon({ category, size = 30 }: { category: string; size?: number }) {
+  const Icon = CATEGORY_ICON[category] ?? FileText;
+  return <Icon size={size} />;
+}
 
 export default function PageDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -45,8 +51,8 @@ export default function PageDetail() {
     <>
       <Navbar />
       <main className="mx-auto max-w-2xl px-4 py-6">
-        <Link to="/pages" className="mb-4 inline-block text-sm text-mist-400 hover:text-mist-100">
-          ← Back to Pages
+        <Link to="/pages" className="mb-4 inline-flex items-center gap-1.5 text-sm text-mist-400 hover:text-mist-100">
+          <ArrowLeft size={15} /> Back to Pages
         </Link>
 
         {loading && <p className="py-8 text-center text-sm text-mist-400">Loading...</p>}
@@ -56,7 +62,7 @@ export default function PageDetail() {
             <div className="card mb-4">
               <div className="flex items-start gap-4">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-500/30 to-ink-700 text-3xl">
-                  {page.avatarUrl ? <img src={page.avatarUrl} alt="" className="h-full w-full object-cover" /> : (CATEGORY_ICON[page.category] ?? "📄")}
+                  {page.avatarUrl ? <img src={page.avatarUrl} alt="" className="h-full w-full object-cover" /> : <CategoryIcon category={page.category} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

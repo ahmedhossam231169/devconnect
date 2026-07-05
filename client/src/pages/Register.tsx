@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError, API_BASE_URL } from "../lib/api";
+import { Code2, Target } from "lucide-react";
 import { useAuth, type AuthUser } from "../lib/auth";
 
 type Role = "DEVELOPER" | "RECRUITER";
@@ -86,11 +87,11 @@ export default function Register() {
               type="button"
               onClick={() => setRole(r)}
               className={
-                "rounded-md px-3 py-2 text-sm font-semibold transition-colors " +
+                "flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition-colors " +
                 (role === r ? "bg-brand-500 text-white" : "text-mist-400 hover:text-mist-100")
               }
             >
-              {r === "DEVELOPER" ? "👩‍💻 Developer" : "🎯 Recruiter"}
+              {r === "DEVELOPER" ? <><Code2 size={15} /> Developer</> : <><Target size={15} /> Recruiter</>}
             </button>
           ))}
         </div>
