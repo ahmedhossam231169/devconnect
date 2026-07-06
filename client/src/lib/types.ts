@@ -54,6 +54,7 @@ export interface Post {
   body: string;
   codeLanguage: string | null;
   codeContent: string | null;
+  imageUrl?: string | null;
   createdAt: string;
   author: PostAuthor;
   likeCount: number;

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { Errors } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
@@ -209,6 +210,7 @@ const communityPostSelect = (viewerId: string) =>
     body: true,
     codeLanguage: true,
     codeContent: true,
+    imageUrl: true,
     createdAt: true,
     author: {
       select: {
@@ -217,12 +219,12 @@ const communityPostSelect = (viewerId: string) =>
       },
     },
     _count: { select: { likes: true, comments: true } },
-    likes: { where: { userId: viewerId }, select: { userId: true } },
+    likes: { where: { userId: viewerId }, select: { userId: true, type: true } },
   }) as const;
 
 function shapeCommunityPost(p: any) {
   const { likes, _count, ...rest } = p;
-  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0 };
+  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0, myReaction: likes[0]?.type ?? null };
 }
 
 communitiesRouter.get(
@@ -273,10 +275,67 @@ communitiesRouter.post(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        imageUrl: input.imageUrl ?? null,
       },
       select: communityPostSelect(userId),
     });
 
     res.status(201).json({ ok: true, post: shapeCommunityPost(post) });
+  })
+);
+
+// ---------------------------------------------------------------
+// GET /api/communities/:slug/members — أعضاء المجتمع
+// PATCH /api/communities/:slug — تعديل (الـ OWNER بس)
+// ---------------------------------------------------------------
+communitiesRouter.get(
+  "/:slug/members",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const community = await prisma.community.findFirst({
+      where: { slug: req.params.slug! },
+      select: { id: true },
+    });
+    if (!community) throw Errors.notFound("Community");
+    const members = await prisma.communityMember.findMany({
+      where: { communityId: community.id },
+      select: {
+        role: true,
+        user: { select: { username: true, profile: { select: { displayName: true, avatarUrl: true, headline: true } } } },
+      },
+    });
+    res.json({ ok: true, members: members.map((m: any) => ({ ...m.user, role: m.role })) });
+  })
+);
+
+communitiesRouter.patch(
+  "/:slug",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const community = await prisma.community.findFirst({
+      where: { slug: req.params.slug! },
+      select: { id: true },
+    });
+    if (!community) throw Errors.notFound("Community");
+
+    const membership = await prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId: community.id, userId } },
+    });
+    if (!membership || membership.role !== "ADMIN") {
+      throw Errors.forbidden("Only the community admin can edit it");
+    }
+
+    const input = z.object({
+      name: z.string().min(2).max(60).optional(),
+      description: z.string().max(500).optional(),
+    }).parse(req.body);
+
+    const updated = await prisma.community.update({
+      where: { id: community.id },
+      data: input,
+      select: { id: true, name: true, slug: true, description: true },
+    });
+    res.json({ ok: true, community: updated });
   })
 );

@@ -4,7 +4,8 @@ import { useAuth } from "../lib/auth";
 import { getSocket } from "../lib/socket";
 import { timeAgo } from "../lib/types";
 import { Navbar } from "../components/Navbar";
-import { Users, ArrowLeft, Send } from "lucide-react";
+import { Users, ArrowLeft, Send, Info, X, Camera } from "lucide-react";
+import { Link } from "react-router-dom";
 import { CodeBlock } from "../components/CodeBlock";
 
 interface OtherUser {
@@ -28,6 +29,7 @@ interface Message {
   codeLanguage: string | null;
   codeContent: string | null;
   createdAt: string;
+  sender?: { username: string; profile: { displayName: string; avatarUrl: string | null } } | null;
 }
 
 export default function Messages() {
@@ -35,6 +37,50 @@ export default function Messages() {
   const myId = user!.id;
 
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [groupInfoOpen, setGroupInfoOpen] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<any[]>([]);
+  const [groupNameDraft, setGroupNameDraft] = useState("");
+  const [savingGroup, setSavingGroup] = useState(false);
+  const groupFileRef = { current: null as HTMLInputElement | null };
+
+  async function openGroupInfo() {
+    if (!activeId) return;
+    const res = await api<{ ok: true; conversation: any }>(`/api/conversations/${activeId}/info`).catch(() => null);
+    if (res) {
+      setGroupMembers(res.conversation.members ?? []);
+      setGroupNameDraft(res.conversation.name ?? "");
+      setGroupInfoOpen(true);
+    }
+  }
+
+  async function saveGroupSettings(avatarUrl?: string) {
+    if (!activeId) return;
+    setSavingGroup(true);
+    try {
+      await api(`/api/conversations/${activeId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: groupNameDraft || undefined, ...(avatarUrl !== undefined ? { avatarUrl } : {}) }),
+      });
+      setConversations((prev) => prev.map((c) => (c.id === activeId ? { ...c, title: groupNameDraft || c.title } : c)));
+      if (avatarUrl === undefined) setGroupInfoOpen(false);
+    } finally {
+      setSavingGroup(false);
+    }
+  }
+
+  async function uploadGroupAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const CN = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const UP = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (!CN || !UP) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", UP);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CN}/image/upload`, { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.secure_url) await saveGroupSettings(data.secure_url);
+  }
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [other, setOther] = useState<OtherUser | null>(null);
@@ -264,13 +310,52 @@ export default function Messages() {
                       : peerTyping ? "typing..." : other && online[other.id] ? "Active now" : "Offline"}
                   </p>
                 </div>
+                {isGroup && (
+                  <button onClick={openGroupInfo} className="ml-auto rounded-lg p-2 text-mist-400 hover:bg-ink-800" title="Group info" aria-label="Group info">
+                    <Info size={18} />
+                  </button>
+                )}
               </div>
                 );
               })()}
 
+              {/* Group info panel */}
+              {groupInfoOpen && (
+                <div className="border-b border-ink-700 bg-ink-900 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold"><Users size={15} /> Group settings</h3>
+                    <button onClick={() => setGroupInfoOpen(false)} className="text-mist-400 hover:text-mist-100" aria-label="Close"><X size={16} /></button>
+                  </div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <input className="input-field !py-2 text-sm" value={groupNameDraft} onChange={(e) => setGroupNameDraft(e.target.value)} placeholder="Group name" />
+                    <button onClick={() => saveGroupSettings()} disabled={savingGroup || !groupNameDraft.trim()} className="btn-primary shrink-0 !py-2 text-sm disabled:opacity-50">
+                      {savingGroup ? "..." : "Save"}
+                    </button>
+                    <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-ink-700 px-3 py-2 text-sm text-mist-400 hover:bg-ink-800">
+                      <Camera size={15} /> Photo
+                      <input type="file" accept="image/*" className="hidden" onChange={uploadGroupAvatar} />
+                    </label>
+                  </div>
+                  <p className="mb-2 text-xs font-semibold text-mist-600">MEMBERS ({groupMembers.length})</p>
+                  <div className="max-h-48 space-y-1 overflow-y-auto">
+                    {groupMembers.map((m: any) => (
+                      <Link key={m.username} to={`/u/${m.username}`} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-ink-800">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-xs font-bold">
+                          {m.profile?.avatarUrl ? <img src={m.profile.avatarUrl} alt="" className="h-full w-full object-cover" /> : m.profile?.displayName?.[0]?.toUpperCase()}
+                        </div>
+                        <span className="text-sm">{m.profile?.displayName}</span>
+                        <span className="text-xs text-mist-600">@{m.username}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex-1 space-y-3 overflow-y-auto p-4">
                 {messages.map((m) => {
                   const mine = m.senderId === myId;
+                  const activeConvForMsg = conversations.find((c) => c.id === activeId);
+                  const showSender = !mine && (activeConvForMsg?.isGroup ?? false) && m.sender;
                   return (
                     <div key={m.id} className={"flex " + (mine ? "justify-end" : "justify-start")}>
                       <div
@@ -279,6 +364,11 @@ export default function Messages() {
                           (mine ? "rounded-br-md bg-brand-500 text-white" : "rounded-bl-md bg-ink-800")
                         }
                       >
+                        {showSender && (
+                          <p className="mb-0.5 text-xs font-semibold text-brand-400">
+                            {m.sender!.profile.displayName}
+                          </p>
+                        )}
                         {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
                         {m.codeContent && m.codeLanguage && (
                           <div className="mt-2 min-w-64 text-left">

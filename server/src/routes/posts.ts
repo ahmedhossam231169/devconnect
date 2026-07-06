@@ -17,6 +17,7 @@ const postSelect = (viewerId: string) =>
     body: true,
     codeLanguage: true,
     codeContent: true,
+    imageUrl: true,
     createdAt: true,
     author: {
       select: {
@@ -26,13 +27,13 @@ const postSelect = (viewerId: string) =>
     },
     _count: { select: { likes: true, comments: true } },
     // hack لطيف: بنجيب لايك المستخدم الحالي بس — لو المصفوفة فيها عنصر يبقى عامل لايك
-    likes: { where: { userId: viewerId }, select: { userId: true } },
+    likes: { where: { userId: viewerId }, select: { userId: true, type: true } },
   }) as const;
 
 // بنحول شكل Prisma لشكل أنضف للـ client
 function shapePost(p: any) {
   const { likes, _count, ...rest } = p;
-  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0 };
+  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0, myReaction: likes[0]?.type ?? null };
 }
 
 // ---------------------------------------------------------------
@@ -84,6 +85,7 @@ postsRouter.post(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        imageUrl: input.imageUrl ?? null,
       },
       select: postSelect(req.user!.userId),
     });
@@ -108,14 +110,22 @@ postsRouter.post(
     });
     if (!post) throw Errors.notFound("Post");
 
+    const reactionType = (req.body?.type as string) || "LIKE";
+    const VALID = ["LIKE", "LOVE", "SUPPORT", "CELEBRATE", "ANGRY"];
+    if (!VALID.includes(reactionType)) throw Errors.badRequest("Invalid reaction type");
+
     const existing = await prisma.like.findUnique({
       where: { userId_postId: { userId, postId } },
     });
 
-    if (existing) {
+    if (existing && existing.type === reactionType) {
+      // نفس الرياكشن مرتين = شيله
       await prisma.like.delete({ where: { userId_postId: { userId, postId } } });
+    } else if (existing) {
+      // رياكشن مختلف = بدّله
+      await prisma.like.update({ where: { userId_postId: { userId, postId } }, data: { type: reactionType as any } });
     } else {
-      await prisma.like.create({ data: { userId, postId } });
+      await prisma.like.create({ data: { userId, postId, type: reactionType as any } });
 
       // إشعار لصاحب البوست — بس لما حد "يعمل" لايك، مش لما يشيله
       const liker = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
@@ -129,7 +139,8 @@ postsRouter.post(
     }
 
     const likeCount = await prisma.like.count({ where: { postId } });
-    res.json({ ok: true, liked: !existing, likeCount });
+    const mine = await prisma.like.findUnique({ where: { userId_postId: { userId, postId } } });
+    res.json({ ok: true, liked: !!mine, myReaction: mine?.type ?? null, likeCount });
   })
 );
 
@@ -253,6 +264,7 @@ postsRouter.patch(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        imageUrl: input.imageUrl ?? null,
       },
       select: postSelect(req.user!.userId),
     });

@@ -64,3 +64,20 @@
            placeholder:text-mist-600 focus:border-brand-500 focus:outline-none;
   }
 }
+
+/* ===== CodeBlock — خلفية وألوان بتتبدل مع الثيم ===== */
+.code-surface {
+  background: #0d1117; /* dark: نفس خلفية github-dark */
+}
+:root.light .code-surface {
+  background: #f6f8fa; /* light: خلفية github الفاتحة */
+}
+/* في اللايت مود، نعدّل ألوان التوكنز الأساسية لألوان github الفاتحة */
+:root.light .hljs { color: #1f2328; background: transparent; }
+:root.light .hljs-keyword, :root.light .hljs-selector-tag { color: #cf222e; }
+:root.light .hljs-string, :root.light .hljs-attr { color: #0a3069; }
+:root.light .hljs-comment { color: #57606a; }
+:root.light .hljs-number, :root.light .hljs-literal { color: #0550ae; }
+:root.light .hljs-title, :root.light .hljs-function .hljs-title { color: #8250df; }
+:root.light .hljs-built_in, :root.light .hljs-type { color: #953800; }
+:root.light .hljs-variable, :root.light .hljs-template-variable { color: #24292f; }

@@ -80,13 +80,17 @@ export function Navbar() {
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <NotificationBell />
-            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white">
+            <Link
+              to={`/u/${user?.username}`}
+              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white transition-shadow hover:ring-2 hover:ring-brand-400"
+              title="My profile"
+            >
               {user?.profile.avatarUrl ? (
                 <img src={user.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
               ) : (
                 user?.profile.displayName?.[0]?.toUpperCase() ?? "?"
               )}
-            </div>
+            </Link>
             <button onClick={logout} className="hidden text-sm text-mist-400 hover:text-red-400 sm:block">
               Logout
             </button>
@@ -122,7 +126,11 @@ export function Navbar() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 border-b border-ink-700 px-4 py-4">
+        <Link
+          to={`/u/${user?.username}`}
+          onClick={() => setMenuOpen(false)}
+          className="flex items-center gap-3 border-b border-ink-700 px-4 py-4 hover:bg-ink-800"
+        >
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white">
             {user?.profile.avatarUrl ? (
               <img src={user.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -134,7 +142,7 @@ export function Navbar() {
             <p className="truncate font-semibold">{user?.profile.displayName}</p>
             <p className="truncate text-xs text-mist-600">@{user?.username}</p>
           </div>
-        </div>
+        </Link>
 
         <nav className="flex flex-col gap-1 p-3">
           {links.map((l) => (

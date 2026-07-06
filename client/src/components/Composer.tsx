@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { api, ApiError } from "../lib/api";
 import type { Post, PostType } from "../lib/types";
-import { PenLine, Code2, HelpCircle, Sparkles } from "lucide-react";
+import { PenLine, Code2, HelpCircle, Sparkles, ImagePlus, X } from "lucide-react";
+import { useRef } from "react";
 
 const LANGUAGES = [
   "javascript", "typescript", "python", "rust", "go",
@@ -24,6 +25,36 @@ export function Composer({
   const [codeContent, setCodeContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  const imageUploadEnabled = !!(CLOUD_NAME && UPLOAD_PRESET);
+
+  async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("Please choose an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("Image must be under 5MB"); return; }
+    setError(null);
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", UPLOAD_PRESET ?? "");
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (!data.secure_url) throw new Error();
+      setImageUrl(data.secure_url);
+    } catch {
+      setError("Image upload failed — try again");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function submit() {
     setError(null);
@@ -31,8 +62,8 @@ export function Composer({
     try {
       const payload =
         type === "SNIPPET"
-          ? { type, title: title || undefined, body, codeLanguage, codeContent }
-          : { type, title: title || undefined, body };
+          ? { type, title: title || undefined, body, codeLanguage, codeContent, imageUrl: imageUrl ?? undefined }
+          : { type, title: title || undefined, body, imageUrl: imageUrl ?? undefined };
 
       const res = await api<{ ok: true; post: Post }>(endpoint, {
         method: "POST",
@@ -44,6 +75,7 @@ export function Composer({
       setTitle("");
       setBody("");
       setCodeContent("");
+      setImageUrl(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server");
     } finally {
@@ -85,9 +117,40 @@ export function Composer({
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-      <p className="mt-1 flex items-center gap-1 text-xs text-mist-600">
-        <Sparkles size={12} /> Markdown supported — **bold**, `code`, lists, and [links](url)
-      </p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1 text-xs text-mist-600">
+          <Sparkles size={12} /> Markdown supported — **bold**, `code`, lists, and [links](url)
+        </p>
+        {imageUploadEnabled && (
+          <>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} className="hidden" />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-mist-400 hover:bg-ink-900 hover:text-brand-400 disabled:opacity-50"
+              title="Attach image"
+            >
+              <ImagePlus size={15} /> {uploadingImage ? "Uploading..." : "Image"}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* معاينة الصورة المرفوعة */}
+      {imageUrl && (
+        <div className="relative mt-2 inline-block">
+          <img src={imageUrl} alt="" className="max-h-48 rounded-lg border border-ink-700 object-cover" />
+          <button
+            type="button"
+            onClick={() => setImageUrl(null)}
+            className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-ink-800 text-mist-100 shadow hover:bg-red-500 hover:text-white"
+            aria-label="Remove image"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
       {type === "SNIPPET" && (
         <div className="mt-2 space-y-2">
           <select

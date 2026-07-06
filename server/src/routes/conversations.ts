@@ -161,6 +161,9 @@ conversationsRouter.get(
         codeLanguage: true,
         codeContent: true,
         createdAt: true,
+        sender: {
+          select: { username: true, profile: { select: { displayName: true, avatarUrl: true } } },
+        },
       },
     });
 
@@ -228,5 +231,64 @@ conversationsRouter.post(
     });
 
     res.status(201).json({ ok: true, conversationId: group.id, group });
+  })
+);
+
+// ---------------------------------------------------------------
+// GET /api/conversations/:id/info — أعضاء الجروب + بياناته
+// PATCH /api/conversations/:id — تعديل اسم/صورة الجروب (الأعضاء بس)
+// ---------------------------------------------------------------
+conversationsRouter.get(
+  "/:id/info",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const convId = req.params.id!;
+    const member = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId: convId, userId } },
+    });
+    if (!member) throw Errors.forbidden("Not a member of this conversation");
+
+    const conv = await prisma.conversation.findUnique({
+      where: { id: convId },
+      select: {
+        id: true, isGroup: true, name: true, avatarUrl: true, createdAt: true,
+        participants: {
+          select: {
+            user: { select: { username: true, profile: { select: { displayName: true, avatarUrl: true, headline: true } } } },
+          },
+        },
+      },
+    });
+    if (!conv) throw Errors.notFound("Conversation");
+    res.json({ ok: true, conversation: { ...conv, members: (conv as any).participants.map((p: any) => p.user) } });
+  })
+);
+
+conversationsRouter.patch(
+  "/:id",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
+    const convId = req.params.id!;
+    const member = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId: convId, userId } },
+    });
+    if (!member) throw Errors.forbidden("Not a member of this conversation");
+
+    const input = zGroup.object({
+      name: zGroup.string().min(2).max(60).optional(),
+      avatarUrl: zGroup.string().url().or(zGroup.literal("")).optional(),
+    }).parse(req.body);
+
+    const conv = await prisma.conversation.update({
+      where: { id: convId },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl || null } : {}),
+      },
+      select: { id: true, name: true, avatarUrl: true },
+    });
+    res.json({ ok: true, conversation: conv });
   })
 );

@@ -57,7 +57,7 @@ export function CodeBlock({ code, language }: { code: string; language: string }
           Copy
         </button>
       </div>
-      <pre className="overflow-x-auto bg-[#0d1117] p-4 font-mono text-sm leading-relaxed">
+      <pre className="code-surface overflow-x-auto p-4 font-mono text-sm leading-relaxed">
         <code dangerouslySetInnerHTML={{ __html: html }} />
       </pre>
     </div>

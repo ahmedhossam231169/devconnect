@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { SPECIALTIES, type Profile, type Skill, type Specialty, type Availability } from "../lib/types";
 import { Navbar } from "../components/Navbar";
+import { useAuth } from "../lib/auth";
 import { ImageUpload } from "../components/ImageUpload";
 
 const AVAILABILITY_LABELS: Record<Availability, string> = {
@@ -80,6 +83,7 @@ export default function EditProfile() {
     <>
       <Navbar />
       <main className="mx-auto max-w-2xl px-4 py-8">
+        <BackToProfile />
         <h1 className="mb-1 text-2xl font-bold">Edit Profile</h1>
         <p className="mb-6 text-sm text-mist-400">
           This is what recruiters see when they search the talent pool — keep it sharp.
@@ -257,5 +261,19 @@ export default function EditProfile() {
         )}
       </main>
     </>
+  );
+}
+
+
+// زرار الرجوع لبروفايلي
+function BackToProfile() {
+  const { user } = useAuth();
+  return (
+    <Link
+      to={`/u/${user?.username}`}
+      className="mb-4 inline-flex items-center gap-1.5 text-sm text-mist-400 hover:text-mist-100"
+    >
+      <ArrowLeft size={15} /> Back to my profile
+    </Link>
   );
 }

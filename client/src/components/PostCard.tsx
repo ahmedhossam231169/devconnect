@@ -5,7 +5,7 @@ import { useAuth } from "../lib/auth";
 import { timeAgo, type Post, type Comment } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
 import { Markdown } from "./Markdown";
-import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry } from "lucide-react";
 
 export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: string) => void }) {
   const { user } = useAuth();
@@ -14,6 +14,32 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
   // اللايك optimistic: بنحدث الـ UI فورًا وبنرجّعه لو الطلب فشل
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [myReaction, setMyReaction] = useState<string | null>((post as any).myReaction ?? null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const REACTIONS = [
+    { type: "LIKE", label: "Like", Icon: ThumbsUp, color: "text-blue-400" },
+    { type: "LOVE", label: "Love", Icon: Heart, color: "text-red-400" },
+    { type: "SUPPORT", label: "Support", Icon: HandHeart, color: "text-emerald-400" },
+    { type: "CELEBRATE", label: "Celebrate", Icon: PartyPopper, color: "text-amber-400" },
+    { type: "ANGRY", label: "Angry", Icon: Angry, color: "text-orange-500" },
+  ] as const;
+
+  async function react(type: string) {
+    setPickerOpen(false);
+    const prev = { liked, likeCount, myReaction };
+    if (myReaction === type) { setMyReaction(null); setLiked(false); setLikeCount((c) => c - 1); }
+    else { if (!myReaction) setLikeCount((c) => c + 1); setMyReaction(type); setLiked(true); }
+    try {
+      const res = await api<{ ok: true; liked: boolean; myReaction: string | null; likeCount: number }>(
+        `/api/posts/${post.id}/like`,
+        { method: "POST", body: JSON.stringify({ type }) }
+      );
+      setLiked(res.liked); setMyReaction(res.myReaction); setLikeCount(res.likeCount);
+    } catch {
+      setLiked(prev.liked); setMyReaction(prev.myReaction); setLikeCount(prev.likeCount);
+    }
+  }
 
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[] | null>(null);
@@ -164,6 +190,11 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
         <>
           {p.title && <h2 className="mb-1 text-lg font-bold">{p.title}</h2>}
           <div className="text-mist-100"><Markdown>{p.body}</Markdown></div>
+          {p.imageUrl && (
+            <a href={p.imageUrl} target="_blank" rel="noreferrer" className="mt-3 block">
+              <img src={p.imageUrl} alt="" loading="lazy" className="max-h-[420px] w-full rounded-lg border border-ink-700 object-cover" />
+            </a>
+          )}
           {p.type === "SNIPPET" && p.codeContent && p.codeLanguage && (
             <div className="mt-3">
               <CodeBlock code={p.codeContent} language={p.codeLanguage} />
@@ -174,13 +205,38 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
 
       {/* Actions */}
       <div className="mt-4 flex items-center gap-5 text-sm text-mist-400">
-        <button
-          onClick={toggleLike}
-          className={"flex items-center gap-1.5 transition-colors hover:text-red-400 " + (liked ? "text-red-400" : "")}
-          aria-pressed={liked}
-        >
-          <Heart size={16} className={liked ? "fill-current" : ""} /> {likeCount}
-        </button>
+        <div className="relative">
+          {pickerOpen && (
+            <div className="absolute bottom-full left-0 z-10 mb-1 flex gap-1 rounded-full border border-ink-700 bg-ink-800 px-2 py-1.5 shadow-xl">
+              {REACTIONS.map((r) => (
+                <button
+                  key={r.type}
+                  onClick={() => react(r.type)}
+                  className={"rounded-full p-1.5 transition-transform hover:scale-125 hover:bg-ink-900 " + r.color}
+                  title={r.label}
+                >
+                  <r.Icon size={18} className={myReaction === r.type ? "fill-current" : ""} />
+                </button>
+              ))}
+            </div>
+          )}
+          {(() => {
+            const active = REACTIONS.find((r) => r.type === myReaction);
+            const Icon = active?.Icon ?? Heart;
+            return (
+              <button
+                onClick={() => (myReaction ? react(myReaction) : react("LIKE"))}
+                onMouseEnter={() => setPickerOpen(true)}
+                onMouseLeave={() => setTimeout(() => setPickerOpen(false), 1500)}
+                onContextMenu={(e) => { e.preventDefault(); setPickerOpen((o) => !o); }}
+                className={"flex items-center gap-1.5 transition-colors " + (active ? active.color : "hover:text-red-400")}
+                aria-pressed={liked}
+              >
+                <Icon size={16} className={myReaction ? "fill-current" : ""} /> {likeCount}
+              </button>
+            );
+          })()}
+        </div>
         <button onClick={openComments} className="flex items-center gap-1.5 hover:text-mist-100">
           <MessageCircle size={16} /> {commentCount}
         </button>

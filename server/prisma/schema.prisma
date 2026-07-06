@@ -119,6 +119,7 @@ model Post {
   // بيانات الـ code snippet (لو النوع SNIPPET)
   codeLanguage String?
   codeContent  String?
+  imageUrl     String? // صورة مرفقة بالبوست (Cloudinary)
   // البوست ممكن يكون في مجتمع أو صفحة (أو عادي في الـ feed لو الاتنين null)
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
@@ -149,9 +150,18 @@ model Comment {
   @@index([postId, createdAt])
 }
 
+enum ReactionType {
+  LIKE
+  LOVE
+  SUPPORT
+  CELEBRATE
+  ANGRY
+}
+
 model Like {
   userId String
   postId String
+  type   ReactionType @default(LIKE)
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
@@ -165,6 +175,7 @@ model Conversation {
   id        String   @id @default(cuid())
   isGroup   Boolean  @default(false) // جروب ولا محادثة 1:1
   name      String?  // اسم الجروب (للجروبات بس)
+  avatarUrl String?  // صورة الجروب
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt // بنحدثه مع كل رسالة عشان نرتب القائمة بآخر نشاط
 

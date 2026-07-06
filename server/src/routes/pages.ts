@@ -34,12 +34,12 @@ const postSelect = (viewerId: string) =>
     codeLanguage: true, codeContent: true, createdAt: true,
     author: { select: { username: true, profile: { select: { displayName: true, avatarUrl: true, headline: true } } } },
     _count: { select: { likes: true, comments: true } },
-    likes: { where: { userId: viewerId }, select: { userId: true } },
+    likes: { where: { userId: viewerId }, select: { userId: true, type: true } },
   }) as const;
 
 function shapePost(p: any) {
   const { likes, _count, ...rest } = p;
-  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0 };
+  return { ...rest, likeCount: _count.likes, commentCount: _count.comments, likedByMe: likes.length > 0, myReaction: likes[0]?.type ?? null };
 }
 
 // ---------------------------------------------------------------
@@ -185,6 +185,7 @@ pagesRouter.post(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        imageUrl: input.imageUrl ?? null,
       },
       select: postSelect(userId),
     });

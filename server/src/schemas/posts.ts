@@ -9,6 +9,7 @@ export const SNIPPET_LANGUAGES = [
 const baseFields = {
   title: z.string().max(120, "Title is too long").optional(),
   body: z.string().min(1, "Post body is required").max(5000, "Post is too long"),
+  imageUrl: z.string().url().optional(), // صورة مرفقة (Cloudinary)
 };
 
 // discriminatedUnion: قواعد مختلفة حسب نوع البوست
