@@ -295,3 +295,30 @@ postsRouter.delete(
     res.json({ ok: true });
   })
 );
+
+// ---------------------------------------------------------------
+// GET /api/posts/:id/reactions — مين تفاعل مع البوست (رياكشنات)
+// ---------------------------------------------------------------
+postsRouter.get(
+  "/:id/reactions",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const postId = req.params.id!;
+    const reactions = await prisma.like.findMany({
+      where: { postId },
+      select: {
+        type: true,
+        user: { select: { username: true, profile: { select: { displayName: true, avatarUrl: true } } } },
+      },
+    });
+    res.json({
+      ok: true,
+      reactions: reactions.map((r: any) => ({
+        type: r.type,
+        username: r.user.username,
+        displayName: r.user.profile?.displayName ?? r.user.username,
+        avatarUrl: r.user.profile?.avatarUrl ?? null,
+      })),
+    });
+  })
+);

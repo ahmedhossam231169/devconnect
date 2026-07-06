@@ -16,6 +16,16 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [myReaction, setMyReaction] = useState<string | null>((post as any).myReaction ?? null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [reactorsOpen, setReactorsOpen] = useState(false);
+  const [reactors, setReactors] = useState<{ type: string; username: string; displayName: string; avatarUrl: string | null }[] | null>(null);
+
+  async function openReactors() {
+    setReactorsOpen((o) => !o);
+    if (reactors === null) {
+      const res = await api<{ ok: true; reactions: any[] }>(`/api/posts/${post.id}/reactions`).catch(() => null);
+      setReactors(res?.reactions ?? []);
+    }
+  }
 
   const REACTIONS = [
     { type: "LIKE", label: "Like", Icon: ThumbsUp, color: "text-blue-400" },
@@ -232,15 +242,45 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
                 className={"flex items-center gap-1.5 transition-colors " + (active ? active.color : "hover:text-red-400")}
                 aria-pressed={liked}
               >
-                <Icon size={16} className={myReaction ? "fill-current" : ""} /> {likeCount}
+                <Icon size={16} className={myReaction ? "fill-current" : ""} />
               </button>
             );
           })()}
         </div>
+        <button onClick={openReactors} className="text-sm hover:underline" title="Who reacted">
+          {likeCount}
+        </button>
         <button onClick={openComments} className="flex items-center gap-1.5 hover:text-mist-100">
           <MessageCircle size={16} /> {commentCount}
         </button>
       </div>
+
+      {/* Reactors list */}
+      {reactorsOpen && (
+        <div className="mt-2 rounded-lg border border-ink-700 bg-ink-900 p-3">
+          {reactors === null ? (
+            <p className="text-xs text-mist-400">Loading...</p>
+          ) : reactors.length === 0 ? (
+            <p className="text-xs text-mist-400">No reactions yet.</p>
+          ) : (
+            <div className="max-h-48 space-y-1.5 overflow-y-auto">
+              {reactors.map((r) => {
+                const meta = REACTIONS.find((x) => x.type === r.type);
+                const RIcon = meta?.Icon ?? Heart;
+                return (
+                  <Link key={r.username} to={`/u/${r.username}`} className="flex items-center gap-2.5 rounded px-1 py-1 hover:bg-ink-800">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-xs font-bold">
+                      {r.avatarUrl ? <img src={r.avatarUrl} alt="" className="h-full w-full object-cover" /> : r.displayName[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-sm">{r.displayName}</span>
+                    <RIcon size={14} className={"ml-auto fill-current " + (meta?.color ?? "text-red-400")} />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Comments */}
       {showComments && (
@@ -252,7 +292,7 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
           {comments?.map((c) => (
             <div key={c.id} className="rounded-lg bg-ink-900 px-3 py-2">
               <p className="text-sm">
-                <span className="font-semibold">{c.author.profile.displayName}</span>{" "}
+                <Link to={`/u/${c.author.username}`} className="font-semibold hover:underline">{c.author.profile.displayName}</Link>{" "}
                 <span className="text-xs text-mist-600">· {timeAgo(c.createdAt)}</span>
               </p>
               <p className="mt-0.5 text-sm text-mist-100">{c.body}</p>
