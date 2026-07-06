@@ -71,7 +71,7 @@ export default function Shortlist() {
             return (
               <div key={c.id} className="card">
                 <div className="flex items-start gap-3">
-                  <Link to={`/u/${c.username}`} className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 font-bold">
+                  <Link to={`/u/${c.username}`} aria-label={`${c.displayName} profile`} className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 font-bold">
                     {c.avatarUrl ? <img src={c.avatarUrl} alt="" className="h-full w-full object-cover" /> : c.displayName[0]?.toUpperCase()}
                   </Link>
                   <div className="min-w-0 flex-1">

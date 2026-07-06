@@ -137,7 +137,7 @@ export default function Friends() {
             <div className="space-y-2">
               {requests.map((u) => (
                 <div key={u.id} className="card flex items-center gap-3 !p-3">
-                  <Link to={`/u/${u.username}`}>{avatar(u)}</Link>
+                  <Link to={`/u/${u.username}`} aria-label={`${u.profile.displayName} profile`}>{avatar(u)}</Link>
                   <div className="min-w-0 flex-1">
                     <Link to={`/u/${u.username}`} className="font-semibold hover:underline">{u.profile.displayName}</Link>
                     <p className="text-xs text-mist-600">@{u.username}</p>
@@ -164,7 +164,7 @@ export default function Friends() {
               <div className="space-y-2">
                 {friends.map((u) => (
                   <div key={u.id} className="card flex items-center gap-3 !p-3">
-                    <Link to={`/u/${u.username}`}>{avatar(u)}</Link>
+                    <Link to={`/u/${u.username}`} aria-label={`${u.profile.displayName} profile`}>{avatar(u)}</Link>
                     <div className="min-w-0 flex-1">
                       <Link to={`/u/${u.username}`} className="font-semibold hover:underline">{u.profile.displayName}</Link>
                       <p className="truncate text-xs text-mist-600">

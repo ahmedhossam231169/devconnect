@@ -82,6 +82,7 @@ export function Navbar() {
             <NotificationBell />
             <Link
               to={`/u/${user?.username}`}
+              aria-label="My profile"
               className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white transition-shadow hover:ring-2 hover:ring-brand-400"
               title="My profile"
             >

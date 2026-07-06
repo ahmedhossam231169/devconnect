@@ -136,7 +136,7 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
     <article className="card !p-5">
       {/* Header */}
       <div className="mb-3 flex items-center gap-3">
-        <Link to={`/u/${p.author.username}`} className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 font-bold hover:ring-2 hover:ring-brand-500">
+        <Link to={`/u/${p.author.username}`} aria-label={`${p.author.profile.displayName} profile`} className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 font-bold hover:ring-2 hover:ring-brand-500">
           {p.author.profile.avatarUrl ? (
             <img src={p.author.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
           ) : (
