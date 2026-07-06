@@ -193,3 +193,91 @@ pagesRouter.post(
     res.status(201).json({ ok: true, post: shapePost(post) });
   })
 );
+
+// ---------------------------------------------------------------
+// PATCH /api/pages/:slug — تعديل الصفحة (ADMIN بس)
+// GET /api/pages/:slug/followers — المتابعين
+// POST /api/pages/:slug/admins — إضافة أدمن | DELETE — إزالة أدمن
+// ---------------------------------------------------------------
+async function requirePageAdmin(slug: string, userId: string) {
+  const page = await prisma.page.findUnique({ where: { slug }, select: { id: true } });
+  if (!page) throw Errors.notFound("Page");
+  const admin = await prisma.pageAdmin.findUnique({
+    where: { pageId_userId: { pageId: page.id, userId } },
+  });
+  if (!admin || admin.role !== "ADMIN") throw Errors.forbidden("Only page admins can do this");
+  return page;
+}
+
+pagesRouter.patch(
+  "/:slug",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const page = await requirePageAdmin(req.params.slug!, req.user!.userId);
+    const input = z.object({
+      name: z.string().min(2).max(60).optional(),
+      bio: z.string().max(500).optional(),
+      avatarUrl: z.string().url().or(z.literal("")).optional(),
+    }).parse(req.body);
+
+    const updated = await prisma.page.update({
+      where: { id: page.id },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.bio !== undefined ? { bio: input.bio } : {}),
+        ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl || null } : {}),
+      },
+      select: { id: true, name: true, slug: true, bio: true, avatarUrl: true },
+    });
+    res.json({ ok: true, page: updated });
+  })
+);
+
+pagesRouter.get(
+  "/:slug/followers",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const page = await prisma.page.findUnique({ where: { slug: req.params.slug! }, select: { id: true } });
+    if (!page) throw Errors.notFound("Page");
+    const [followers, admins] = await Promise.all([
+      prisma.pageFollower.findMany({
+        where: { pageId: page.id },
+        select: { user: { select: { username: true, profile: { select: { displayName: true, avatarUrl: true } } } } },
+      }),
+      prisma.pageAdmin.findMany({ where: { pageId: page.id }, select: { userId: true, role: true, user: { select: { username: true } } } }),
+    ]);
+    const adminUsernames = admins.map((a: any) => a.user?.username).filter(Boolean);
+    res.json({
+      ok: true,
+      followers: followers.map((f: any) => ({ ...f.user, isAdmin: adminUsernames.includes(f.user.username) })),
+    });
+  })
+);
+
+pagesRouter.post(
+  "/:slug/admins",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const page = await requirePageAdmin(req.params.slug!, req.user!.userId);
+    const { username } = z.object({ username: z.string().min(1) }).parse(req.body);
+    const user = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+    if (!user) throw Errors.notFound("User");
+    const existing = await prisma.pageAdmin.findUnique({ where: { pageId_userId: { pageId: page.id, userId: user.id } } });
+    if (existing) throw Errors.conflict("Already an admin");
+    await prisma.pageAdmin.create({ data: { pageId: page.id, userId: user.id, role: "ADMIN" } });
+    res.status(201).json({ ok: true });
+  })
+);
+
+pagesRouter.delete(
+  "/:slug/admins/:username",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const page = await requirePageAdmin(req.params.slug!, req.user!.userId);
+    const user = await prisma.user.findUnique({ where: { username: req.params.username! }, select: { id: true } });
+    if (!user) throw Errors.notFound("User");
+    if (user.id === req.user!.userId) throw Errors.badRequest("You can't remove yourself");
+    await prisma.pageAdmin.delete({ where: { pageId_userId: { pageId: page.id, userId: user.id } } }).catch(() => {});
+    res.json({ ok: true });
+  })
+);

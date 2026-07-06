@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { PageDetail as PageDetailType, Post } from "../lib/types";
 import { Navbar } from "../components/Navbar";
-import { Building2, Rocket, Globe, Users, Package, FileText, ArrowLeft } from "lucide-react";
+import { Building2, Rocket, Globe, Users, Package, FileText, ArrowLeft, Settings, X, Camera, ShieldPlus, ShieldMinus } from "lucide-react";
 import { Composer } from "../components/Composer";
 import { PostCard } from "../components/PostCard";
 
@@ -32,6 +32,65 @@ export default function PageDetail() {
       })
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [followers, setFollowers] = useState<any[]>([]);
+  const [newAdmin, setNewAdmin] = useState("");
+
+  async function openSettings() {
+    if (!page) return;
+    setEditName(page.name);
+    setEditBio(page.bio ?? "");
+    setShowSettings(true);
+    const res = await api<{ ok: true; followers: any[] }>(`/api/pages/${page.slug}/followers`).catch(() => null);
+    if (res) setFollowers(res.followers);
+  }
+
+  async function saveSettings(avatarUrl?: string) {
+    if (!page) return;
+    setSaving(true);
+    try {
+      const res = await api<{ ok: true; page: any }>(`/api/pages/${page.slug}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: editName, bio: editBio, ...(avatarUrl !== undefined ? { avatarUrl } : {}) }),
+      });
+      setPage((p) => (p ? { ...p, name: res.page.name, bio: res.page.bio, avatarUrl: res.page.avatarUrl } : p));
+      if (avatarUrl === undefined) setShowSettings(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function uploadPageAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const CN = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const UP = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    if (!CN || !UP) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", UP);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CN}/image/upload`, { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.secure_url) await saveSettings(data.secure_url);
+  }
+
+  async function toggleAdmin(username: string, isAdmin: boolean) {
+    if (!page) return;
+    if (isAdmin) await api(`/api/pages/${page.slug}/admins/${username}`, { method: "DELETE" }).catch(() => {});
+    else await api(`/api/pages/${page.slug}/admins`, { method: "POST", body: JSON.stringify({ username }) }).catch(() => {});
+    const res = await api<{ ok: true; followers: any[] }>(`/api/pages/${page.slug}/followers`).catch(() => null);
+    if (res) setFollowers(res.followers);
+  }
+
+  async function addAdminByName() {
+    if (!newAdmin.trim()) return;
+    await toggleAdmin(newAdmin.trim(), false);
+    setNewAdmin("");
+  }
 
   async function toggleFollow() {
     if (!page) return;
@@ -74,6 +133,12 @@ export default function PageDetail() {
                   <p className="text-sm text-mist-600">{page.category} · {page.followerCount} followers</p>
                   {page.bio && <p className="mt-2 text-sm text-mist-100">{page.bio}</p>}
                 </div>
+                <div className="flex shrink-0 items-center gap-2">
+                {page.isAdmin && (
+                  <button onClick={openSettings} className="flex items-center justify-center rounded-lg border border-ink-700 p-2 text-mist-400 hover:bg-ink-900" title="Page settings" aria-label="Page settings">
+                    <Settings size={17} />
+                  </button>
+                )}
                 <button
                   onClick={toggleFollow}
                   disabled={toggling}
@@ -84,8 +149,68 @@ export default function PageDetail() {
                 >
                   {toggling ? "..." : page.followedByMe ? "Following" : "Follow"}
                 </button>
+                </div>
               </div>
             </div>
+
+            {/* Settings panel */}
+            {showSettings && (
+              <div className="card mb-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="flex items-center gap-2 font-semibold"><Settings size={17} /> Page Settings</h2>
+                  <button onClick={() => setShowSettings(false)} className="text-mist-400 hover:text-mist-100" aria-label="Close"><X size={18} /></button>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-sm font-medium">Page name</label>
+                      <input className="input-field" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-ink-700 px-3 py-2.5 text-sm text-mist-400 hover:bg-ink-900">
+                      <Camera size={15} /> Change photo
+                      <input type="file" accept="image/*" className="hidden" onChange={uploadPageAvatar} />
+                    </label>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Bio</label>
+                    <textarea className="input-field min-h-20 resize-y" value={editBio} onChange={(e) => setEditBio(e.target.value)} />
+                  </div>
+                  <button onClick={() => saveSettings()} disabled={saving || !editName.trim()} className="btn-primary !py-2 text-sm disabled:opacity-50">
+                    {saving ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+
+                <div className="mt-5 border-t border-ink-700 pt-4">
+                  <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Users size={15} /> Followers ({followers.length})</h3>
+                  <div className="mb-3 flex gap-2">
+                    <input className="input-field !py-2 text-sm" placeholder="username to add as admin" value={newAdmin} onChange={(e) => setNewAdmin(e.target.value)} />
+                    <button onClick={addAdminByName} disabled={!newAdmin.trim()} className="btn-ghost shrink-0 !py-2 text-sm disabled:opacity-50">
+                      <ShieldPlus size={15} /> Add admin
+                    </button>
+                  </div>
+                  <div className="max-h-64 space-y-1 overflow-y-auto">
+                    {followers.map((f: any) => (
+                      <div key={f.username} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-ink-900">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-sm font-bold">
+                          {f.profile?.avatarUrl ? <img src={f.profile.avatarUrl} alt="" className="h-full w-full object-cover" /> : f.profile?.displayName?.[0]?.toUpperCase()}
+                        </div>
+                        <span className="text-sm">{f.profile?.displayName}</span>
+                        <span className="text-xs text-mist-600">@{f.username}</span>
+                        {f.isAdmin && <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-semibold text-brand-400">Admin</span>}
+                        <button
+                          onClick={() => toggleAdmin(f.username, f.isAdmin)}
+                          className="ml-auto flex items-center gap-1 rounded px-2 py-1 text-xs text-mist-400 hover:bg-ink-800 hover:text-mist-100"
+                          title={f.isAdmin ? "Remove admin" : "Make admin"}
+                        >
+                          {f.isAdmin ? <ShieldMinus size={13} /> : <ShieldPlus size={13} />}
+                          {f.isAdmin ? "Remove admin" : "Make admin"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Admin composer — بينشر باسم الصفحة */}
             {page.isAdmin && (
