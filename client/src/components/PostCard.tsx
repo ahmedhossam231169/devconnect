@@ -142,23 +142,6 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
     }
   }
 
-  async function toggleLike() {
-    const prev = { liked, likeCount };
-    setLiked(!liked);
-    setLikeCount((c) => c + (liked ? -1 : 1));
-    try {
-      const res = await api<{ ok: true; liked: boolean; likeCount: number }>(
-        `/api/posts/${post.id}/like`,
-        { method: "POST" }
-      );
-      setLiked(res.liked);
-      setLikeCount(res.likeCount); // السيرفر هو مصدر الحقيقة
-    } catch {
-      setLiked(prev.liked); // rollback
-      setLikeCount(prev.likeCount);
-    }
-  }
-
   async function openComments() {
     setShowComments((s) => !s);
     if (comments === null) {

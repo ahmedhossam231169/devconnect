@@ -41,7 +41,6 @@ export default function Messages() {
   const [groupMembers, setGroupMembers] = useState<any[]>([]);
   const [groupNameDraft, setGroupNameDraft] = useState("");
   const [savingGroup, setSavingGroup] = useState(false);
-  const groupFileRef = { current: null as HTMLInputElement | null };
 
   async function openGroupInfo() {
     if (!activeId) return;

@@ -5,6 +5,8 @@ import { Errors } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { notify } from "../lib/notify.js";
+import { assertNotBlocked } from "../lib/blocks.js";
+import { findUserByUsername } from "../lib/users.js";
 
 export const friendsRouter = Router();
 
@@ -18,16 +20,6 @@ const userCard = {
   },
 } as const;
 
-// helper: يجيب مستخدم بالـ username أو يرمي 404
-async function findUserByUsername(username: string) {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true, username: true },
-  });
-  if (!user) throw Errors.notFound("User");
-  return user;
-}
-
 // ---------------------------------------------------------------
 // POST /api/friends/request — إرسال طلب صداقة
 // ---------------------------------------------------------------
@@ -40,6 +32,7 @@ friendsRouter.post(
     const other = await findUserByUsername(username);
 
     if (other.id === me) throw Errors.badRequest("You can't friend yourself");
+    await assertNotBlocked(me, other.id);
 
     // في علاقة بالفعل؟ (في أي اتجاه)
     const existing = await prisma.friendship.findFirst({
@@ -222,6 +215,7 @@ friendsRouter.post(
     const me = req.user!.userId;
     const other = await findUserByUsername(req.params.username!);
     if (other.id === me) throw Errors.badRequest("You can't follow yourself");
+    await assertNotBlocked(me, other.id);
 
     const existing = await prisma.follow.findUnique({
       where: { followerId_followingId: { followerId: me, followingId: other.id } },

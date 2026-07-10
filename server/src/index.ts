@@ -19,7 +19,7 @@ import { shortlistRouter } from "./routes/shortlist.js";
 import { searchRouter } from "./routes/search.js";
 import { setupSocket } from "./socket.js";
 import { getAllowedOrigins } from "./lib/cors.js";
-import { authLimiter, apiLimiter } from "./middleware/rateLimit.js";
+import { apiLimiter } from "./middleware/rateLimit.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;

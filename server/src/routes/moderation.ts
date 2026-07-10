@@ -4,17 +4,9 @@ import { prisma } from "../lib/prisma.js";
 import { Errors } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
+import { findUserByUsername } from "../lib/users.js";
 
 export const moderationRouter = Router();
-
-async function findUserByUsername(username: string) {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true },
-  });
-  if (!user) throw Errors.notFound("User");
-  return user;
-}
 
 // ---------------------------------------------------------------
 // POST /api/moderation/block/:username — toggle حظر

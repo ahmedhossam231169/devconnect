@@ -4,6 +4,8 @@ import { prisma } from "../lib/prisma.js";
 import { Errors } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
+import { httpUrl } from "../schemas/profile.js";
+import { assertNotBlocked } from "../lib/blocks.js";
 
 export const conversationsRouter = Router();
 
@@ -108,6 +110,7 @@ conversationsRouter.post(
     });
     if (!other) throw Errors.notFound("User");
     if (other.id === me) throw Errors.badRequest("You can't message yourself");
+    await assertNotBlocked(me, other.id);
 
     const existing = await prisma.conversation.findFirst({
       where: {
@@ -278,7 +281,7 @@ conversationsRouter.patch(
 
     const input = zGroup.object({
       name: zGroup.string().min(2).max(60).optional(),
-      avatarUrl: zGroup.string().url().or(zGroup.literal("")).optional(),
+      avatarUrl: httpUrl().or(zGroup.literal("")).optional(), // [SECURITY] http(s) بس — بتتعرض في src/href
     }).parse(req.body);
 
     const conv = await prisma.conversation.update({

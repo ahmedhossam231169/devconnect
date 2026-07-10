@@ -6,6 +6,9 @@ import { talentSearchSchema } from "../schemas/profile.js";
 
 export const talentRouter = Router();
 
+// كل المسارات دي للـ recruiters بس
+talentRouter.use(requireAuth, requireRole("RECRUITER"));
+
 const candidateSelect = {
   id: true,
   displayName: true,
@@ -37,8 +40,6 @@ function shapeCandidate(p: any) {
 // ---------------------------------------------------------------
 talentRouter.get(
   "/search",
-  requireAuth,
-  requireRole("RECRUITER"),
   asyncHandler(async (req, res) => {
     const q = talentSearchSchema.parse(req.query);
 
@@ -91,8 +92,6 @@ talentRouter.get(
 // ---------------------------------------------------------------
 talentRouter.get(
   "/facets",
-  requireAuth,
-  requireRole("RECRUITER"),
   asyncHandler(async (_req, res) => {
     const skills = await prisma.skill.findMany({
       select: { name: true },

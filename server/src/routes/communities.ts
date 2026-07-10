@@ -6,26 +6,9 @@ import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createCommunitySchema } from "../schemas/communities.js";
 import { notify } from "../lib/notify.js";
+import { slugify, uniqueSlug, communitySlugExists } from "../lib/slug.js";
 
 export const communitiesRouter = Router();
-
-// "React Masters" → "react-masters" — وبنضيف رقم لو الاسم متكرر
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-async function uniqueSlug(base: string): Promise<string> {
-  let slug = base || "community";
-  let i = 1;
-  while (await prisma.community.findFirst({ where: { slug }, select: { id: true } })) {
-    slug = `${base}-${++i}`;
-  }
-  return slug;
-}
 
 const memberPreviewSelect = {
   select: {
@@ -81,7 +64,7 @@ communitiesRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const input = createCommunitySchema.parse(req.body);
-    const slug = await uniqueSlug(slugify(input.name));
+    const slug = await uniqueSlug(slugify(input.name), communitySlugExists);
 
     const community = await prisma.community.create({
       data: {

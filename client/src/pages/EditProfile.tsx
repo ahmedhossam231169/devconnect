@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, ApiError } from "../lib/api";
-import { SPECIALTIES, type Profile, type Skill, type Specialty, type Availability } from "../lib/types";
+import { SPECIALTIES, type Profile, type Specialty, type Availability } from "../lib/types";
 import { Navbar } from "../components/Navbar";
 import { useAuth } from "../lib/auth";
 import { ImageUpload } from "../components/ImageUpload";

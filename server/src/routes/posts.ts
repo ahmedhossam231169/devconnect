@@ -5,6 +5,7 @@ import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createPostSchema, createCommentSchema, createRepostSchema, feedQuerySchema } from "../schemas/posts.js";
 import { notify } from "../lib/notify.js";
+import { assertNotBlocked } from "../lib/blocks.js";
 
 export const postsRouter = Router();
 
@@ -182,6 +183,7 @@ postsRouter.post(
       select: { id: true, authorId: true, title: true, body: true },
     });
     if (!post) throw Errors.notFound("Post");
+    await assertNotBlocked(userId, post.authorId);
 
     const reactionType = (req.body?.type as string) || "LIKE";
     const VALID = ["LIKE", "LOVE", "SUPPORT", "CELEBRATE", "ANGRY"];
@@ -234,6 +236,7 @@ postsRouter.post(
       select: { id: true, authorId: true, title: true, body: true },
     });
     if (!post) throw Errors.notFound("Post");
+    await assertNotBlocked(userId, post.authorId);
 
     const existing = await prisma.repost.findUnique({
       where: { userId_postId: { userId, postId } },
@@ -330,6 +333,7 @@ postsRouter.post(
       select: { id: true, authorId: true, title: true, body: true },
     });
     if (!post) throw Errors.notFound("Post");
+    await assertNotBlocked(req.user!.userId, post.authorId);
 
     const comment = await prisma.comment.create({
       data: { postId, authorId: req.user!.userId, body: input.body },

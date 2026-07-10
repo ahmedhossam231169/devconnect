@@ -5,6 +5,8 @@ import { Errors } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { createPostSchema } from "../schemas/posts.js";
+import { httpUrl } from "../schemas/profile.js";
+import { slugify, uniqueSlug, pageSlugExists } from "../lib/slug.js";
 
 export const pagesRouter = Router();
 
@@ -15,18 +17,6 @@ const createPageSchema = z.object({
   bio: z.string().max(500).optional(),
   category: z.enum(PAGE_CATEGORIES),
 });
-
-function slugify(name: string): string {
-  return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-}
-async function uniqueSlug(base: string): Promise<string> {
-  let slug = base || "page";
-  let i = 1;
-  while (await prisma.page.findUnique({ where: { slug }, select: { id: true } })) {
-    slug = `${base}-${++i}`;
-  }
-  return slug;
-}
 
 const postSelect = (viewerId: string) =>
   ({
@@ -74,7 +64,7 @@ pagesRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const input = createPageSchema.parse(req.body);
-    const slug = await uniqueSlug(slugify(input.name));
+    const slug = await uniqueSlug(slugify(input.name), pageSlugExists);
 
     const page = await prisma.page.create({
       data: {
@@ -217,7 +207,7 @@ pagesRouter.patch(
     const input = z.object({
       name: z.string().min(2).max(60).optional(),
       bio: z.string().max(500).optional(),
-      avatarUrl: z.string().url().or(z.literal("")).optional(),
+      avatarUrl: httpUrl().or(z.literal("")).optional(), // [SECURITY] http(s) بس — بتتعرض في src/href
     }).parse(req.body);
 
     const updated = await prisma.page.update({

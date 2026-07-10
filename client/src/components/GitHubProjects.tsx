@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { GitHubProject } from "../lib/types";
-import { Star, GitFork, Code2 } from "lucide-react";
+import { Star, GitFork } from "lucide-react";
 
 const LANG_COLOR: Record<string, string> = {
   JavaScript: "#f1e05a", TypeScript: "#3178c6", Python: "#3572A5", Rust: "#dea584",
