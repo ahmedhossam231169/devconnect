@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import type { Profile, Post } from "../lib/types";
+import type { Profile, FeedItem } from "../lib/types";
 import { Navbar } from "../components/Navbar";
 import { PostCard } from "../components/PostCard";
-import { Zap, MapPin, Briefcase, Clock, MessageCircle, Code2, Link2 } from "lucide-react";
+import { Zap, MapPin, Briefcase, Clock, MessageCircle, Code2, Link2, Repeat2 } from "lucide-react";
 import { RelationActions } from "../components/RelationActions";
 import { GitHubProjects } from "../components/GitHubProjects";
 
@@ -28,7 +28,7 @@ export default function UserProfile() {
 
   const [user, setUser] = useState<PublicUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [items, setItems] = useState<FeedItem[]>([]);
   const [reputation, setReputation] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +42,13 @@ export default function UserProfile() {
     setError(null);
     Promise.all([
       api<{ ok: true; user: PublicUser; profile: Profile; reputation: number }>(`/api/profiles/${username}`),
-      api<{ ok: true; posts: Post[] }>(`/api/posts/user/${username}`),
+      api<{ ok: true; items: FeedItem[] }>(`/api/posts/user/${username}`),
     ])
       .then(([p, ps]) => {
         setUser(p.user);
         setProfile(p.profile);
         setReputation(p.reputation);
-        setPosts(ps.posts);
+        setItems(ps.items);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't load this profile"))
       .finally(() => setLoading(false));
@@ -150,12 +150,12 @@ export default function UserProfile() {
             {/* GitHub Projects — live from GitHub API */}
             <GitHubProjects username={username!} />
 
-            {/* Posts */}
+            {/* Posts + Reposts — نفس عرض الفيد الرئيسي */}
             <h2 className="mb-3 mt-4 px-1 font-semibold">
-              Posts {posts.length > 0 && <span className="text-mist-600">({posts.length})</span>}
+              Posts {items.length > 0 && <span className="text-mist-600">({items.length})</span>}
             </h2>
 
-            {posts.length === 0 ? (
+            {items.length === 0 ? (
               <div className="card !p-8 text-center">
                 <p className="text-sm text-mist-400">
                   {isMe ? "You haven't posted anything yet." : `${profile.displayName} hasn't posted yet.`}
@@ -163,9 +163,25 @@ export default function UserProfile() {
               </div>
             ) : (
               <div className="space-y-4">
-                {posts.map((p) => (
-                  <PostCard key={p.id} post={p} onDeleted={(id) => setPosts((prev) => prev.filter((x) => x.id !== id))} />
-                ))}
+                {items.map((item) => {
+                  const onDeleted = (id: string) =>
+                    setItems((prev) => prev.filter((x) => x.post.id !== id));
+                  if (item.kind === "post") {
+                    return <PostCard key={`post-${item.post.id}`} post={item.post} onDeleted={onDeleted} />;
+                  }
+                  return (
+                    <div key={`repost-${item.id}`}>
+                      <p className="mb-1.5 flex items-center gap-2 px-1 text-sm text-mist-400">
+                        <Repeat2 size={14} className="text-emerald-400" />
+                        <span className="font-semibold">{profile.displayName}</span> reposted
+                      </p>
+                      {item.comment && (
+                        <p className="mb-2 px-1 text-sm text-mist-100">{item.comment}</p>
+                      )}
+                      <PostCard post={item.post} onDeleted={onDeleted} />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>

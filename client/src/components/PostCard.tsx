@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { timeAgo, type Post, type Comment } from "../lib/types";
+import { getSocket } from "../lib/socket";
+import { timeAgo, type Post, type Comment, type UserCard } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
 import { Markdown } from "./Markdown";
-import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry, Repeat2, Share2 } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry, Repeat2, Share2, LinkIcon, Send } from "lucide-react";
 
 export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: string) => void }) {
   const { user } = useAuth();
@@ -95,6 +96,42 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 1500);
     });
+  }
+
+  // ---- الشير لصاحب: بنبعت البوست كرسالة في الشات (من غير ما يظهر في الفيد) ----
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [friendPickerOpen, setFriendPickerOpen] = useState(false);
+  const [friends, setFriends] = useState<UserCard[] | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null); // username اللي لسه متبعتله
+
+  async function openFriendPicker() {
+    setShareMenuOpen(false);
+    setFriendPickerOpen(true);
+    if (friends === null) {
+      const res = await api<{ ok: true; friends: UserCard[] }>("/api/friends").catch(() => null);
+      setFriends(res?.friends ?? []);
+    }
+  }
+
+  async function sendToFriend(username: string) {
+    setSentTo(username);
+    try {
+      // find-or-create المحادثة، وبعدين نبعت الرسالة على نفس قناة الشات
+      const conv = await api<{ ok: true; conversationId: string }>("/api/conversations", {
+        method: "POST",
+        body: JSON.stringify({ username }),
+      });
+      getSocket().emit("message:send", {
+        conversationId: conv.conversationId,
+        body: `Check out this post by ${post.author.profile.displayName} 👇\n${window.location.origin}/post/${post.id}`,
+      });
+      setTimeout(() => {
+        setFriendPickerOpen(false);
+        setSentTo(null);
+      }, 1200);
+    } catch {
+      setSentTo(null);
+    }
   }
 
   const [showComments, setShowComments] = useState(false);
@@ -308,10 +345,67 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: (id: str
           {repostCount}
         </button>
 
-        <button onClick={shareLink} className="flex items-center gap-1.5 hover:text-mist-100" title="Copy link to post">
-          <Share2 size={16} /> {shareCopied ? "Copied!" : "Share"}
-        </button>
+        <div className="relative">
+          {shareMenuOpen && (
+            <div className="absolute bottom-full left-0 z-10 mb-1 w-48 rounded-lg border border-ink-700 bg-ink-800 py-1 text-sm shadow-xl">
+              <button
+                onClick={() => { setShareMenuOpen(false); toggleRepost(); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900"
+              >
+                <Repeat2 size={14} /> Share to your profile
+              </button>
+              <button onClick={openFriendPicker} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900">
+                <Send size={14} /> Send to a friend
+              </button>
+              <button
+                onClick={() => { setShareMenuOpen(false); shareLink(); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900"
+              >
+                <LinkIcon size={14} /> Copy link
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => setShareMenuOpen((o) => !o)}
+            className="flex items-center gap-1.5 hover:text-mist-100"
+            title="Share"
+          >
+            <Share2 size={16} /> {shareCopied ? "Copied!" : "Share"}
+          </button>
+        </div>
       </div>
+
+      {/* Friend picker — بنبعت البوست في الشات */}
+      {friendPickerOpen && (
+        <div className="mt-2 rounded-lg border border-ink-700 bg-ink-900 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold text-mist-400">Send to a friend</p>
+            <button onClick={() => setFriendPickerOpen(false)} className="text-xs text-mist-600 hover:text-mist-100">✕</button>
+          </div>
+          {friends === null ? (
+            <p className="text-xs text-mist-400">Loading friends...</p>
+          ) : friends.length === 0 ? (
+            <p className="text-xs text-mist-400">You have no friends yet — add some first.</p>
+          ) : (
+            <div className="max-h-48 space-y-1.5 overflow-y-auto">
+              {friends.map((f) => (
+                <button
+                  key={f.username}
+                  onClick={() => sendToFriend(f.username)}
+                  disabled={sentTo !== null}
+                  className="flex w-full items-center gap-2.5 rounded px-1 py-1 text-left hover:bg-ink-800 disabled:opacity-60"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-xs font-bold">
+                    {f.profile.avatarUrl ? <img src={f.profile.avatarUrl} alt="" className="h-full w-full object-cover" /> : f.profile.displayName[0]?.toUpperCase()}
+                  </div>
+                  <span className="text-sm">{f.profile.displayName}</span>
+                  {sentTo === f.username && <span className="ml-auto text-xs text-emerald-400">Sent ✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quote repost box */}
       {quoteOpen && (

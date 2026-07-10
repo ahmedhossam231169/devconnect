@@ -32,6 +32,32 @@ interface Message {
   sender?: { username: string; profile: { displayName: string; avatarUrl: string | null } } | null;
 }
 
+// بيحول روابط http(s) في نص الرسالة لروابط قابلة للضغط
+// روابط التطبيق نفسه (زي رابط بوست متشير) بتتفتح بـ react-router من غير reload
+function LinkifiedBody({ body }: { body: string }) {
+  const parts = body.split(/(https?:\/\/[^\s]+)/g);
+  return (
+    <p className="whitespace-pre-wrap">
+      {parts.map((part, i) => {
+        if (!/^https?:\/\//.test(part)) return part;
+        const isInternal = part.startsWith(window.location.origin);
+        if (isInternal) {
+          return (
+            <Link key={i} to={part.slice(window.location.origin.length)} className="font-semibold underline hover:opacity-80">
+              {part}
+            </Link>
+          );
+        }
+        return (
+          <a key={i} href={part} target="_blank" rel="noreferrer noopener" className="font-semibold underline hover:opacity-80">
+            {part}
+          </a>
+        );
+      })}
+    </p>
+  );
+}
+
 export default function Messages() {
   const { user } = useAuth();
   const myId = user!.id;
@@ -368,7 +394,7 @@ export default function Messages() {
                             {m.sender!.profile.displayName}
                           </p>
                         )}
-                        {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+                        {m.body && <LinkifiedBody body={m.body} />}
                         {m.codeContent && m.codeLanguage && (
                           <div className="mt-2 min-w-64 text-left">
                             <CodeBlock code={m.codeContent} language={m.codeLanguage} />

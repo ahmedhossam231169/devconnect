@@ -363,7 +363,8 @@ postsRouter.post(
 );
 
 // ---------------------------------------------------------------
-// GET /api/posts/user/:username — بوستات مستخدم معيّن (لصفحة البروفايل العامة)
+// GET /api/posts/user/:username — بوستات مستخدم معيّن + الـ reposts بتاعته
+// (لصفحة البروفايل العامة) — نفس شكل FeedItem بتاع الفيد الرئيسي
 // ---------------------------------------------------------------
 postsRouter.get(
   "/user/:username",
@@ -375,14 +376,46 @@ postsRouter.get(
     });
     if (!user) throw Errors.notFound("User");
 
-    const posts = await prisma.post.findMany({
-      where: { authorId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-      select: postSelect(req.user!.userId),
-    });
+    const viewerId = req.user!.userId;
+    const [posts, reposts] = await Promise.all([
+      prisma.post.findMany({
+        where: { authorId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        select: postSelect(viewerId),
+      }),
+      // الـ reposts اللي عملها صاحب البروفايل — البوست الأصلي بيتعرض باسم كاتبه
+      prisma.repost.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        select: {
+          id: true,
+          comment: true,
+          createdAt: true,
+          user: { select: reposterSelect },
+          post: { select: postSelect(viewerId) },
+        },
+      }),
+    ]);
 
-    res.json({ ok: true, posts: posts.map(shapePost) });
+    // دمج وترتيب بالتاريخ: البوست بتاريخ نشره، والـ repost بتاريخ عمله
+    const items = [
+      ...posts.map((p) => ({ kind: "post" as const, post: shapePost(p), sortAt: +p.createdAt })),
+      ...reposts.map((r) => ({
+        kind: "repost" as const,
+        id: r.id,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        reposter: r.user,
+        post: shapePost(r.post),
+        sortAt: +r.createdAt,
+      })),
+    ]
+      .sort((a, b) => b.sortAt - a.sortAt)
+      .map(({ sortAt, ...rest }) => rest);
+
+    res.json({ ok: true, items });
   })
 );
 
