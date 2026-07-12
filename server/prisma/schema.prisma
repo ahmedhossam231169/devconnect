@@ -88,9 +88,14 @@ model Profile {
   githubUrl       String?
   githubUsername  String? // للـ GitHub projects import
   onboarded       Boolean       @default(false) // خلّص خطوات الترحيب؟
+  // [SECURITY BUG-01] الظهور للـ recruiters بموافقة صريحة — الافتراضي مخفي.
+  // من غيره أي حساب recruiter (والتسجيل مفتوح) كان يقدر يعدّد بيانات كل المطورين.
+  // فلتر الـ talent search بيرجّع بس اللي discoverable=true.
+  discoverable    Boolean       @default(false)
   skills          ProfileSkill[]
 
   @@index([specialty, yearsExperience, availability]) // فهرس مخصوص لفلتر الـ HR
+  @@index([discoverable]) // فلتر الظهور بيتطبق على كل بحث talent
 }
 
 model Skill {

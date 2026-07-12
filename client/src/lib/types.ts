@@ -24,6 +24,7 @@ export interface Profile {
   availability: Availability;
   websiteUrl: string | null;
   githubUrl: string | null;
+  discoverable: boolean; // ظاهر للـ recruiters في talent search؟
   skills: Skill[];
 }
 

@@ -5,6 +5,7 @@ import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { updateProfileSchema } from "../schemas/profile.js";
 import { calculateReputation } from "../lib/reputation.js";
+import { isBlockedBetween } from "../lib/blocks.js";
 
 export const profilesRouter = Router();
 
@@ -23,6 +24,7 @@ const fullProfileSelect = {
   githubUrl: true,
   githubUsername: true,
   onboarded: true,
+  discoverable: true,
   skills: {
     select: { years: true, skill: { select: { name: true } } },
     orderBy: { years: "desc" },
@@ -118,6 +120,8 @@ profilesRouter.get(
       },
     });
     if (!user || !user.profile) throw Errors.notFound("Profile");
+    // [SECURITY BUG-04] لو في حظر بين الطرفين، اعرض كأنه مش موجود (إخفاء متبادل)
+    if (await isBlockedBetween(req.user!.userId, user.id)) throw Errors.notFound("Profile");
 
     const reputation = await calculateReputation(user.id);
 
@@ -151,9 +155,11 @@ profilesRouter.get(
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { username: req.params.username! },
-      select: { profile: { select: { githubUsername: true, githubUrl: true } } },
+      select: { id: true, profile: { select: { githubUsername: true, githubUrl: true } } },
     });
     if (!user?.profile) throw Errors.notFound("Profile");
+    // [SECURITY BUG-04] المحظور مايشوفش مشاريع GitHub بتاعت اللي حظره
+    if (await isBlockedBetween(req.user!.userId, user.id)) throw Errors.notFound("Profile");
 
     // نستنتج username الـ GitHub: من الحقل المخصص، أو من الـ githubUrl
     let ghUsername = user.profile.githubUsername;

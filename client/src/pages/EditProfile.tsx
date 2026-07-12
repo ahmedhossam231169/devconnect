@@ -67,6 +67,7 @@ export default function EditProfile() {
           websiteUrl: profile.websiteUrl ?? "",
           githubUrl: profile.githubUrl ?? "",
           avatarUrl: profile.avatarUrl ?? "",
+          discoverable: profile.discoverable,
           skills: profile.skills,
         }),
       });
@@ -243,6 +244,26 @@ export default function EditProfile() {
                   Add
                 </button>
               </div>
+            </div>
+
+            {/* [SECURITY BUG-01] موافقة الظهور للـ recruiters — الافتراضي مخفي */}
+            <div className="card">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 accent-brand-500"
+                  checked={profile.discoverable}
+                  onChange={(e) => update("discoverable", e.target.checked)}
+                />
+                <span>
+                  <span className="block text-sm font-medium">Discoverable by recruiters</span>
+                  <span className="mt-0.5 block text-sm text-mist-400">
+                    When on, recruiters can find you in talent search by specialty, skills, and experience.
+                    When off, your profile stays out of recruiter search results. You can still be viewed
+                    directly by anyone with your profile link.
+                  </span>
+                </span>
+              </label>
             </div>
 
             {error && (

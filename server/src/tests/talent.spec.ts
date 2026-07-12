@@ -28,16 +28,20 @@ async function main() {
   const [tAlex, tSarah, tMarcus, tHR] = [alex, sarah, marcus, recruiter].map((r) => r.data.token);
 
   // 2) نكمّل بروفايلات المطورين (specialty, years, skills, availability)
+  // discoverable:true — لازم للـ opt-in الجديد عشان يظهروا في talent search (BUG-01 fix)
   const u1 = await req("PUT", "/api/profiles/me", tAlex, {
     specialty: "Full Stack", yearsExperience: 8, availability: "OPEN_TO_WORK", location: "San Francisco, CA",
+    discoverable: true,
     skills: [{ name: "React", years: 6 }, { name: "TypeScript", years: 5 }, { name: "Node.js", years: 4 }],
   });
   const u2 = await req("PUT", "/api/profiles/me", tSarah, {
     specialty: "AI/ML", yearsExperience: 5, availability: "OPEN_TO_WORK",
+    discoverable: true,
     skills: [{ name: "Python", years: 5 }, { name: "TensorFlow", years: 3 }],
   });
   const u3 = await req("PUT", "/api/profiles/me", tMarcus, {
     specialty: "Full Stack", yearsExperience: 2, availability: "NOT_LOOKING",
+    discoverable: true,
     skills: [{ name: "React", years: 2 }],
   });
   console.log("2) profile updates →", [u1, u2, u3].map((r) => r.status));

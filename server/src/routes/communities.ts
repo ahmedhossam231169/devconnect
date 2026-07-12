@@ -112,6 +112,9 @@ communitiesRouter.get(
 
     const { members, ...rest } = community as any;
     const myMembership = members.find((m: any) => m.userId === userId);
+    // [SECURITY BUG-03] preview الأعضاء بيتخفي عن غير أعضاء الكوميونتي الخاص
+    // (العدد بس مسموح — مش بيسرّب هوية حد)
+    const showRoster = !rest.isPrivate || !!myMembership;
     res.json({
       ok: true,
       community: {
@@ -120,12 +123,14 @@ communitiesRouter.get(
         joinedByMe: !!myMembership,
         myRole: myMembership?.role ?? null,
         requestedByMe: !!myRequest,
-        memberPreview: members.slice(0, 5).map((m: any) => ({
-          username: m.user.username,
-          displayName: m.user.profile?.displayName ?? m.user.username,
-          avatarUrl: m.user.profile?.avatarUrl ?? null,
-          role: m.role,
-        })),
+        memberPreview: showRoster
+          ? members.slice(0, 5).map((m: any) => ({
+              username: m.user.username,
+              displayName: m.user.profile?.displayName ?? m.user.username,
+              avatarUrl: m.user.profile?.avatarUrl ?? null,
+              role: m.role,
+            }))
+          : [],
       },
     });
   })
@@ -335,11 +340,21 @@ communitiesRouter.get(
   "/:slug/members",
   requireAuth,
   asyncHandler(async (req, res) => {
+    const userId = req.user!.userId;
     const community = await prisma.community.findFirst({
       where: { slug: req.params.slug! },
-      select: { id: true },
+      select: { id: true, isPrivate: true },
     });
     if (!community) throw Errors.notFound("Community");
+
+    // [SECURITY BUG-03] روستر الكوميونتي الخاص للأعضاء بس (كان مكشوف للكل)
+    if (community.isPrivate) {
+      const membership = await prisma.communityMember.findUnique({
+        where: { communityId_userId: { communityId: community.id, userId } },
+      });
+      if (!membership) throw Errors.forbidden("Join this community to see its members");
+    }
+
     const members = await prisma.communityMember.findMany({
       where: { communityId: community.id },
       select: {

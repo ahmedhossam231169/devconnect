@@ -19,15 +19,27 @@ searchRouter.get(
       return res.json({ ok: true, users: [], posts: [] });
     }
 
+    const me = req.user!.userId;
+    // [SECURITY BUG-04] استبعاد أي طرف في علاقة حظر (في أي اتجاه) من النتايج
+    const notBlocked = {
+      blocksMade: { none: { blockedId: me } }, // هو حظرني
+      blocksReceived: { none: { blockerId: me } }, // أنا حظرته
+    };
+
     const [users, posts] = await Promise.all([
       // المستخدمين: بحث في الـ username والاسم والـ headline والتخصص
       prisma.user.findMany({
         where: {
-          OR: [
-            { username: { contains: q, mode: "insensitive" } },
-            { profile: { displayName: { contains: q, mode: "insensitive" } } },
-            { profile: { headline: { contains: q, mode: "insensitive" } } },
-            { profile: { specialty: { contains: q, mode: "insensitive" } } },
+          AND: [
+            {
+              OR: [
+                { username: { contains: q, mode: "insensitive" } },
+                { profile: { displayName: { contains: q, mode: "insensitive" } } },
+                { profile: { headline: { contains: q, mode: "insensitive" } } },
+                { profile: { specialty: { contains: q, mode: "insensitive" } } },
+              ],
+            },
+            notBlocked,
           ],
         },
         take: 8,
@@ -45,6 +57,7 @@ searchRouter.get(
             { title: { contains: q, mode: "insensitive" } },
             { body: { contains: q, mode: "insensitive" } },
           ],
+          author: notBlocked, // [SECURITY BUG-04] مايظهرش بوستات طرف محظور
         },
         orderBy: { createdAt: "desc" },
         take: 8,

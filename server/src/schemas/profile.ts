@@ -25,6 +25,8 @@ export const updateProfileSchema = z.object({
   yearsExperience: z.coerce.number().int().min(0).max(60).optional(),
   specialty: z.enum(SPECIALTIES).optional(),
   availability: z.enum(["OPEN_TO_WORK", "NOT_LOOKING", "FREELANCE_ONLY"]).optional(),
+  // [SECURITY BUG-01] موافقة الظهور للـ recruiters في talent search
+  discoverable: z.boolean().optional(),
   websiteUrl: httpUrl().or(z.literal("")).optional(),
   githubUrl: httpUrl().or(z.literal("")).optional(),
   avatarUrl: httpUrl().or(z.literal("")).optional(),

@@ -45,7 +45,9 @@ talentRouter.get(
 
     // كل عنصر هنا شرط لازم يتحقق — الـ skills بتتحول لشروط "AND" منفصلة
     // يعني لو الـ recruiter دور بـ React + TypeScript، المرشح لازم يملك الاتنين مع بعض
-    const andConditions: any[] = [];
+    // [SECURITY BUG-01] شرط ثابت: بس البروفايلات اللي وافقت تظهر للـ recruiters.
+    // من غيره أي recruiter (والتسجيل مفتوح) كان يعدّد بيانات كل المطورين بدون موافقتهم.
+    const andConditions: any[] = [{ discoverable: true }];
 
     if (q.specialty) andConditions.push({ specialty: q.specialty });
     if (q.availability) andConditions.push({ availability: q.availability });
