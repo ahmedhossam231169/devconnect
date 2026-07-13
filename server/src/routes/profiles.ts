@@ -25,6 +25,14 @@ const fullProfileSelect = {
   githubUsername: true,
   onboarded: true,
   discoverable: true,
+  bannerUrl: true,
+  resumeUrl: true,
+  profileViews: true,
+  experiences: {
+    select: { id: true, title: true, company: true, startYear: true, endYear: true, description: true },
+    // الوظيفة الحالية (endYear=null) الأول، وبعدين الأحدث فالأقدم
+    orderBy: { startYear: "desc" },
+  },
   skills: {
     select: { years: true, skill: { select: { name: true } } },
     orderBy: { years: "desc" },
@@ -65,11 +73,32 @@ profilesRouter.put(
   asyncHandler(async (req, res) => {
     const input = updateProfileSchema.parse(req.body);
     const userId = req.user!.userId;
-    const { skills, ...scalarFields } = input;
+    const { skills, experiences, ...scalarFields } = input;
 
     // 1) تحديث الحقول العادية
     if (Object.keys(scalarFields).length > 0) {
       await prisma.profile.update({ where: { userId }, data: scalarFields });
+    }
+
+    // 1.5) الخبرات الوظيفية: استبدال كامل (نفس أسلوب الـ skills تحت)
+    if (experiences) {
+      const profile = await prisma.profile.findUniqueOrThrow({
+        where: { userId },
+        select: { id: true },
+      });
+      await prisma.experience.deleteMany({ where: { profileId: profile.id } });
+      if (experiences.length > 0) {
+        await prisma.experience.createMany({
+          data: experiences.map((e) => ({
+            profileId: profile.id,
+            title: e.title,
+            company: e.company,
+            startYear: e.startYear,
+            endYear: e.endYear ?? null,
+            description: e.description ?? null,
+          })),
+        });
+      }
     }
 
     // 2) الـ skills: بنمسح القديم ونحط الجديد (بسيط وآمن ضد تكرار)
@@ -133,12 +162,68 @@ profilesRouter.get(
 
     const reputation = await calculateReputation(user.id);
 
+    // عدد المتابعين — بيظهر في شريط إحصائيات البروفايل في الديزاين
+    const followers = await prisma.follow.count({ where: { followingId: user.id } });
+
+    const profile = shapeProfile(user.profile) as any;
+    // الـ CV للـ recruiters وصاحب البروفايل بس — "VERIFIED RECRUITER ACCESS ONLY"
+    const isOwner = user.id === req.user!.userId;
+    if (!isOwner && req.user!.role !== "RECRUITER") {
+      profile.resumeUrl = null;
+    }
+
     res.json({
       ok: true,
       user: { username: user.username, role: user.role, createdAt: user.createdAt },
-      profile: shapeProfile(user.profile),
+      profile,
       reputation,
+      followers,
     });
+  })
+);
+
+// ---------------------------------------------------------------
+// GET /api/profiles/:username/activity — آخر نشاط حقيقي للمستخدم:
+// بوستات نشرها + كوميونتيهات انضم لها (للـ Activity Feed في البروفايل)
+// ---------------------------------------------------------------
+profilesRouter.get(
+  "/:username/activity",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUnique({
+      where: { username: req.params.username! },
+      select: { id: true },
+    });
+    if (!user) throw Errors.notFound("Profile");
+    if (await isBlockedBetween(req.user!.userId, user.id)) throw Errors.notFound("Profile");
+
+    const [posts, memberships] = await Promise.all([
+      prisma.post.findMany({
+        where: { authorId: user.id, communityId: null, pageId: null },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, type: true, title: true, createdAt: true },
+      }),
+      prisma.communityMember.findMany({
+        where: { userId: user.id, community: { isPrivate: false } },
+        orderBy: { joinedAt: "desc" },
+        take: 3,
+        select: { joinedAt: true, community: { select: { name: true, slug: true } } },
+      }),
+    ]);
+
+    type Item =
+      | { kind: "post"; at: Date; postId: string; postType: string; title: string | null }
+      | { kind: "community"; at: Date; name: string; slug: string };
+
+    const items: Item[] = [
+      ...posts.map((p): Item => ({ kind: "post", at: p.createdAt, postId: p.id, postType: p.type, title: p.title })),
+      ...memberships.map((m): Item => ({ kind: "community", at: m.joinedAt, name: m.community.name, slug: m.community.slug })),
+    ]
+      .sort((a, b) => +b.at - +a.at)
+      .slice(0, 6);
+
+    res.json({ ok: true, items });
   })
 );
 

@@ -30,6 +30,21 @@ export const updateProfileSchema = z.object({
   websiteUrl: httpUrl().or(z.literal("")).optional(),
   githubUrl: httpUrl().or(z.literal("")).optional(),
   avatarUrl: httpUrl().or(z.literal("")).optional(),
+  bannerUrl: httpUrl().or(z.literal("")).optional(),
+  resumeUrl: httpUrl().or(z.literal("")).optional(),
+  // الخبرات الوظيفية — بنستبدل القايمة كلها (نفس أسلوب الـ skills)
+  experiences: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(80),
+        company: z.string().min(1).max(80),
+        startYear: z.coerce.number().int().min(1970).max(2100),
+        endYear: z.coerce.number().int().min(1970).max(2100).nullable().optional(),
+        description: z.string().max(500).optional(),
+      })
+    )
+    .max(15, "Too many experiences")
+    .optional(),
   // الـ skills بتتبعت كـ array من { name, years } — بنعمل upsert لكل واحدة
   skills: z
     .array(

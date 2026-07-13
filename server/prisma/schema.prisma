@@ -93,6 +93,10 @@ model Profile {
   onboarded       Boolean       @default(false) // خلّص خطوات الترحيب؟
   // عداد مشاهدات البروفايل — بيزيد مع كل زيارة من مستخدم تاني (ويدجت الفيد)
   profileViews    Int           @default(0)
+  bannerUrl       String? // صورة الغلاف (Cloudinary) — الديزاين الجديد
+  // رابط الـ CV (PDF على Cloudinary) — بيظهر للـ recruiters وصاحب البروفايل بس
+  resumeUrl       String?
+  experiences     Experience[]
   // [SECURITY BUG-01] الظهور للـ recruiters بموافقة صريحة — الافتراضي مخفي.
   // من غيره أي حساب recruiter (والتسجيل مفتوح) كان يقدر يعدّد بيانات كل المطورين.
   // فلتر الـ talent search بيرجّع بس اللي discoverable=true.
@@ -101,6 +105,20 @@ model Profile {
 
   @@index([specialty, yearsExperience, availability]) // فهرس مخصوص لفلتر الـ HR
   @@index([discoverable]) // فلتر الظهور بيتطبق على كل بحث talent
+}
+
+// الخبرات الوظيفية — الـ Career Roadmap في البروفايل وصفحة المرشح
+model Experience {
+  id          String  @id @default(cuid())
+  profileId   String
+  profile     Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title       String  // "Senior Frontend Engineer"
+  company     String  // "TechFlow Systems"
+  startYear   Int
+  endYear     Int?    // null = Present
+  description String?
+
+  @@index([profileId, startYear])
 }
 
 model Skill {

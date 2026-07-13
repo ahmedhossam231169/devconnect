@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, ApiError } from "../lib/api";
-import { SPECIALTIES, type Profile, type Specialty, type Availability } from "../lib/types";
+import { SPECIALTIES, type Profile, type Specialty, type Availability, type Experience } from "../lib/types";
 import { AppShell } from "../components/AppShell";
 import { useAuth } from "../lib/auth";
 import { ImageUpload } from "../components/ImageUpload";
+import { FileUpload } from "../components/FileUpload";
 
 const AVAILABILITY_LABELS: Record<Availability, string> = {
   OPEN_TO_WORK: "Open to work",
@@ -23,6 +24,29 @@ export default function EditProfile() {
   // مسودة الـ skill الجديدة
   const [skillName, setSkillName] = useState("");
   const [skillYears, setSkillYears] = useState(1);
+
+  // مسودة الخبرة الجديدة (Career Roadmap)
+  const emptyExp = { title: "", company: "", startYear: new Date().getFullYear(), endYear: "" as number | "", description: "" };
+  const [expDraft, setExpDraft] = useState(emptyExp);
+
+  function addExperience() {
+    if (!profile || !expDraft.title.trim() || !expDraft.company.trim()) return;
+    const exp: Experience = {
+      id: `tmp-${Date.now()}`, // بيتستبدل بـ id حقيقي بعد الحفظ
+      title: expDraft.title.trim(),
+      company: expDraft.company.trim(),
+      startYear: expDraft.startYear,
+      endYear: expDraft.endYear === "" ? null : expDraft.endYear,
+      description: expDraft.description.trim() || null,
+    };
+    update("experiences", [...profile.experiences, exp]);
+    setExpDraft(emptyExp);
+  }
+
+  function removeExperience(id: string) {
+    if (!profile) return;
+    update("experiences", profile.experiences.filter((e) => e.id !== id));
+  }
 
   useEffect(() => {
     api<{ ok: true; profile: Profile }>("/api/profiles/me")
@@ -67,8 +91,15 @@ export default function EditProfile() {
           websiteUrl: profile.websiteUrl ?? "",
           githubUrl: profile.githubUrl ?? "",
           avatarUrl: profile.avatarUrl ?? "",
+          bannerUrl: profile.bannerUrl ?? "",
+          resumeUrl: profile.resumeUrl ?? "",
           discoverable: profile.discoverable,
           skills: profile.skills,
+          experiences: profile.experiences.map(({ id, description, endYear, ...e }) => ({
+            ...e,
+            endYear: endYear ?? null,
+            description: description ?? undefined,
+          })),
         }),
       });
       setProfile(res.profile);
@@ -100,6 +131,15 @@ export default function EditProfile() {
                   currentUrl={profile.avatarUrl}
                   onUploaded={(url) => update("avatarUrl", url)}
                   label="Upload photo"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Banner image</label>
+                <ImageUpload
+                  currentUrl={profile.bannerUrl}
+                  onUploaded={(url) => update("bannerUrl", url)}
+                  label="Upload banner"
+                  rounded={false}
                 />
               </div>
               <div>
@@ -243,6 +283,100 @@ export default function EditProfile() {
                   Add
                 </button>
               </div>
+            </div>
+
+            {/* الخبرات الوظيفية — الـ Career Roadmap في البروفايل وصفحة المرشح */}
+            <div className="card">
+              <h2 className="mb-1 font-semibold">Experience</h2>
+              <p className="mb-4 text-sm text-mist-400">Your career history — shown on your profile and to recruiters.</p>
+
+              <div className="space-y-3">
+                {profile.experiences.map((e) => (
+                  <div key={e.id} className="flex items-start justify-between gap-3 rounded-lg border border-ink-700 bg-ink-900 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold">{e.title}</p>
+                      <p className="text-sm text-mist-400">
+                        {e.company} · {e.startYear} – {e.endYear ?? "Present"}
+                      </p>
+                      {e.description && <p className="mt-1 text-sm text-mist-600">{e.description}</p>}
+                    </div>
+                    <button
+                      onClick={() => removeExperience(e.id)}
+                      className="shrink-0 text-mist-600 hover:text-red-400"
+                      aria-label={`Remove ${e.title}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 space-y-2 rounded-lg border border-dashed border-ink-700 p-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    className="input-field !py-2 text-sm"
+                    placeholder="Job title (e.g. Senior Frontend Engineer)"
+                    value={expDraft.title}
+                    onChange={(e) => setExpDraft((d) => ({ ...d, title: e.target.value }))}
+                  />
+                  <input
+                    className="input-field !py-2 text-sm"
+                    placeholder="Company"
+                    value={expDraft.company}
+                    onChange={(e) => setExpDraft((d) => ({ ...d, company: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    className="input-field !py-2 text-sm"
+                    placeholder="Start year"
+                    min={1970}
+                    max={2100}
+                    value={expDraft.startYear}
+                    onChange={(e) => setExpDraft((d) => ({ ...d, startYear: Number(e.target.value) }))}
+                    aria-label="Start year"
+                  />
+                  <input
+                    type="number"
+                    className="input-field !py-2 text-sm"
+                    placeholder="End year (empty = Present)"
+                    min={1970}
+                    max={2100}
+                    value={expDraft.endYear}
+                    onChange={(e) => setExpDraft((d) => ({ ...d, endYear: e.target.value === "" ? "" : Number(e.target.value) }))}
+                    aria-label="End year (leave empty if current)"
+                  />
+                </div>
+                <textarea
+                  className="input-field min-h-16 resize-y text-sm"
+                  placeholder="What did you build or lead there? (optional)"
+                  value={expDraft.description}
+                  onChange={(e) => setExpDraft((d) => ({ ...d, description: e.target.value }))}
+                />
+                <button
+                  onClick={addExperience}
+                  disabled={!expDraft.title.trim() || !expDraft.company.trim()}
+                  className="btn-ghost !py-2 text-sm disabled:opacity-50"
+                >
+                  Add experience
+                </button>
+              </div>
+            </div>
+
+            {/* الـ Resume — بيظهر للـ recruiters بس في البروفايل العام */}
+            <div className="card">
+              <h2 className="mb-1 font-semibold">Resume</h2>
+              <p className="mb-3 text-sm text-mist-400">
+                A PDF resume recruiters can download from your profile. Only visible to
+                verified recruiters (and you).
+              </p>
+              <FileUpload
+                currentUrl={profile.resumeUrl}
+                onUploaded={(url) => update("resumeUrl", url)}
+                onCleared={() => update("resumeUrl", null)}
+                label="Upload resume (PDF)"
+              />
             </div>
 
             {/* [SECURITY BUG-01] موافقة الظهور للـ recruiters — الافتراضي مخفي */}

@@ -12,20 +12,34 @@ export interface Skill {
   years: number;
 }
 
+export interface Experience {
+  id: string;
+  title: string;
+  company: string;
+  startYear: number;
+  endYear: number | null; // null = Present (الوظيفة الحالية)
+  description: string | null;
+}
+
 export interface Profile {
   id: string;
   displayName: string | null;
   headline: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  bannerUrl: string | null;
+  resumeUrl: string | null; // بيرجع للـ recruiters وصاحب البروفايل بس
   location: string | null;
   yearsExperience: number | null;
   specialty: Specialty | null;
   availability: Availability;
   websiteUrl: string | null;
   githubUrl: string | null;
+  githubUsername?: string | null;
   discoverable: boolean; // ظاهر للـ recruiters في talent search؟
+  profileViews?: number;
   skills: Skill[];
+  experiences: Experience[];
 }
 
 export interface Candidate {
