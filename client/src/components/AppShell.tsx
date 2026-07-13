@@ -20,10 +20,13 @@ interface NavItem {
 export function AppShell({
   children,
   width = "default",
+  sidebarExtra,
 }: {
   children: ReactNode;
   /** عرض مساحة المحتوى: narrow = فورمات/صفحات صغيرة، default = فيد، wide = داشبورد/جداول، full = بدون قيد */
   width?: "narrow" | "default" | "wide" | "full";
+  /** محتوى إضافي بيتعرض تحت الـ nav في الـ sidebar (زي ويدجت YOUR PROFILE STATS) */
+  sidebarExtra?: ReactNode;
 }) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
@@ -155,6 +158,7 @@ export function AppShell({
       <aside className="fixed bottom-0 left-0 top-[57px] z-20 hidden w-60 flex-col border-r border-ink-700/60 bg-ink-900 md:flex">
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {links.map((l) => navItem(l))}
+          {sidebarExtra && <div className="pt-3">{sidebarExtra}</div>}
         </nav>
         {sidebarFooter()}
       </aside>

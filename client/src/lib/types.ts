@@ -41,7 +41,7 @@ export interface Candidate {
   skills: Skill[];
 }
 
-export type PostType = "TEXT" | "SNIPPET" | "QUESTION";
+export type PostType = "TEXT" | "SNIPPET" | "QUESTION" | "PROJECT";
 
 export interface PostAuthor {
   username: string;

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import { closeSocket } from "./socket";
 
 // ---------------------------------------------------------------
@@ -40,7 +40,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     api<{ ok: true; user: AuthUser }>("/api/auth/me")
       .then((res) => setUser(res.user))
-      .catch(() => localStorage.removeItem(TOKEN_KEY)) // توكن بايظ/منتهي → نظّفه
+      .catch((err) => {
+        // بنمسح التوكن بس لو فعلاً مرفوض (401) — مش على rate limit أو مشكلة شبكة،
+        // عشان مايتعملش logout غصب عن المستخدم على خطأ عابر
+        if (err instanceof ApiError && err.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 

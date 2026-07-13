@@ -102,15 +102,49 @@ postsRouter.get(
       ],
     };
 
+    // تاب Relevant: شبكتك بس — أصدقاء + متابَعين + كوميونتيهاتك + صفحاتك + بوستاتك
+    let relevantAnd = {};
+    let repostUserFilter = {};
+    if (q.sort === "relevant") {
+      const [friendships, follows] = await Promise.all([
+        prisma.friendship.findMany({
+          where: { status: "ACCEPTED", OR: [{ requesterId: viewerId }, { addresseeId: viewerId }] },
+          select: { requesterId: true, addresseeId: true },
+        }),
+        prisma.follow.findMany({
+          where: { followerId: viewerId },
+          select: { followingId: true },
+        }),
+      ]);
+      const network = new Set<string>([viewerId]);
+      for (const f of friendships) network.add(f.requesterId === viewerId ? f.addresseeId : f.requesterId);
+      for (const f of follows) network.add(f.followingId);
+      const networkIds = [...network];
+
+      relevantAnd = {
+        AND: [{
+          OR: [
+            { authorId: { in: networkIds } },
+            { community: { members: { some: { userId: viewerId } } } },
+            { page: { followers: { some: { userId: viewerId } } } },
+          ],
+        }],
+      };
+      // الـ reposts في Relevant: من ناس في شبكتك بس
+      repostUserFilter = { userId: { in: networkIds } };
+    }
+
+    const feedWhere = { ...visibleToViewer, ...relevantAnd };
+
     const [posts, reposts] = await Promise.all([
       prisma.post.findMany({
-        where: visibleToViewer,
+        where: feedWhere,
         take: FETCH_CAP,
         orderBy: { createdAt: "desc" },
         select: postSelect(viewerId),
       }),
       prisma.repost.findMany({
-        where: { post: visibleToViewer },
+        where: { post: visibleToViewer, ...repostUserFilter },
         take: FETCH_CAP,
         orderBy: { createdAt: "desc" },
         select: {

@@ -247,6 +247,11 @@ export function PostCard({
               Help Wanted
             </span>
           )}
+          {p.type === "PROJECT" && (
+            <span className="shrink-0 rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-400">
+              Project
+            </span>
+          )}
           {(isMine || canModerate) && (
             <div className="relative">
               <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center rounded px-2 py-1 text-mist-400 hover:bg-ink-900" aria-label="Post options"><MoreHorizontal size={18} /></button>

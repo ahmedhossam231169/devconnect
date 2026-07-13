@@ -91,6 +91,8 @@ model Profile {
   githubUrl       String?
   githubUsername  String? // للـ GitHub projects import
   onboarded       Boolean       @default(false) // خلّص خطوات الترحيب؟
+  // عداد مشاهدات البروفايل — بيزيد مع كل زيارة من مستخدم تاني (ويدجت الفيد)
+  profileViews    Int           @default(0)
   // [SECURITY BUG-01] الظهور للـ recruiters بموافقة صريحة — الافتراضي مخفي.
   // من غيره أي حساب recruiter (والتسجيل مفتوح) كان يقدر يعدّد بيانات كل المطورين.
   // فلتر الـ talent search بيرجّع بس اللي discoverable=true.

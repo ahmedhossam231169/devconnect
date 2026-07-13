@@ -18,6 +18,8 @@ const baseFields = {
 export const createPostSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("TEXT"), ...baseFields }),
   z.object({ type: z.literal("QUESTION"), ...baseFields }),
+  // مشاركة مشروع — العنوان اسم المشروع، والوصف/اللينكات في الـ body (زر + Project في الديزاين)
+  z.object({ type: z.literal("PROJECT"), ...baseFields }),
   z.object({
     type: z.literal("SNIPPET"),
     ...baseFields,
@@ -39,7 +41,8 @@ export const createRepostSchema = z.object({
 
 // query params بتاعة الـ feed — بنعمل لها validation برضه
 export const feedQuerySchema = z.object({
-  sort: z.enum(["latest", "top"]).default("latest"),
+  // relevant = بوستات أصدقائك واللي بتتابعهم وكوميونتيهاتك بس (تاب Relevant في الديزاين)
+  sort: z.enum(["relevant", "latest", "top"]).default("latest"),
   cursor: z.string().optional(), // id آخر بوست في الصفحة اللي فاتت
   take: z.coerce.number().int().min(1).max(50).default(10),
 });

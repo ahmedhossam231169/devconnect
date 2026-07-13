@@ -123,6 +123,14 @@ profilesRouter.get(
     // [SECURITY BUG-04] لو في حظر بين الطرفين، اعرض كأنه مش موجود (إخفاء متبادل)
     if (await isBlockedBetween(req.user!.userId, user.id)) throw Errors.notFound("Profile");
 
+    // عداد المشاهدات — زيارات الآخرين بس (مش صاحب البروفايل)
+    if (user.id !== req.user!.userId) {
+      await prisma.profile.update({
+        where: { userId: user.id },
+        data: { profileViews: { increment: 1 } },
+      });
+    }
+
     const reputation = await calculateReputation(user.id);
 
     res.json({

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { api, ApiError } from "../lib/api";
 import type { Post, PostType } from "../lib/types";
-import { PenLine, Code2, HelpCircle, Sparkles, ImagePlus, X } from "lucide-react";
+import { Code2, HelpCircle, ImagePlus, Plus, X } from "lucide-react";
 import { useRef } from "react";
+import { useAuth } from "../lib/auth";
 
 const LANGUAGES = [
   "javascript", "typescript", "python", "rust", "go",
@@ -18,6 +19,7 @@ export function Composer({
   endpoint?: string;
   placeholder?: string;
 }) {
+  const { user } = useAuth();
   const [type, setType] = useState<PostType>("TEXT");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -83,14 +85,18 @@ export function Composer({
     }
   }
 
-  const tab = (t: PostType, label: string, Icon: typeof PenLine) => (
+  // زرار نوع البوست في الصف السفلي — الضغط تاني بيرجّع لبوست عادي
+  const typeBtn = (t: PostType, label: string, Icon: typeof Code2) => (
     <button
       type="button"
-      onClick={() => setType(t)}
+      onClick={() => setType(type === t ? "TEXT" : t)}
       className={
-        "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors " +
-        (type === t ? "bg-brand-500 text-white" : "text-mist-400 hover:text-mist-100")
+        "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold transition-colors " +
+        (type === t
+          ? "bg-brand-500/15 text-brand-400"
+          : "text-mist-400 hover:bg-ink-900 hover:text-mist-100")
       }
+      aria-pressed={type === t}
     >
       <Icon size={15} /> {label}
     </button>
@@ -98,43 +104,30 @@ export function Composer({
 
   return (
     <div className="card !p-4">
-      <div className="mb-3 flex gap-1 rounded-lg bg-ink-900 p-1">
-        {tab("TEXT", "Post", PenLine)}
-        {tab("SNIPPET", "Snippet", Code2)}
-        {tab("QUESTION", "Question", HelpCircle)}
-      </div>
-
-      <input
-        className="input-field mb-2"
-        placeholder="Title (optional)"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        maxLength={120}
-      />
-      <textarea
-        className="input-field min-h-20 resize-y"
-        placeholder={placeholder ?? (type === "QUESTION" ? "What's blocking you?" : "What are you building today?")}
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-      />
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1 text-xs text-mist-600">
-          <Sparkles size={12} /> Markdown supported — **bold**, `code`, lists, and [links](url)
-        </p>
-        {imageUploadEnabled && (
-          <>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} className="hidden" />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingImage}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-mist-400 hover:bg-ink-900 hover:text-brand-400 disabled:opacity-50"
-              title="Attach image"
-            >
-              <ImagePlus size={15} /> {uploadingImage ? "Uploading..." : "Image"}
-            </button>
-          </>
-        )}
+      {/* صف الكتابة: الأفاتار + الحقول — زي الديزاين */}
+      <div className="flex gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white">
+          {user?.profile.avatarUrl ? (
+            <img src={user.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            user?.profile.displayName?.[0]?.toUpperCase() ?? "?"
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <input
+            className="input-field !border-transparent !bg-transparent !px-0 !py-1 text-[15px] font-semibold focus:!border-transparent"
+            placeholder="Title (optional)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={120}
+          />
+          <textarea
+            className="input-field min-h-16 resize-y"
+            placeholder={placeholder ?? (type === "QUESTION" ? "What's blocking you?" : "What are you building today?")}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* معاينة الصورة المرفوعة */}
@@ -179,11 +172,31 @@ export function Composer({
         </p>
       )}
 
-      <div className="mt-3 flex justify-end">
+      {/* الصف السفلي: أنواع البوست + المرفقات شمال، زر النشر يمين — زي الديزاين */}
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-ink-700/50 pt-3">
+        <div className="flex flex-wrap items-center gap-1">
+          {typeBtn("SNIPPET", "Snippet", Code2)}
+          {imageUploadEnabled && (
+            <>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} className="hidden" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-mist-400 hover:bg-ink-900 hover:text-mist-100 disabled:opacity-50"
+                title="Attach image"
+              >
+                <ImagePlus size={15} /> {uploadingImage ? "Uploading..." : "Image"}
+              </button>
+            </>
+          )}
+          {typeBtn("PROJECT", "Project", Plus)}
+          {typeBtn("QUESTION", "Question", HelpCircle)}
+        </div>
         <button
           onClick={submit}
           disabled={submitting || !body.trim() || (type === "SNIPPET" && !codeContent.trim())}
-          className="btn-primary !py-2 text-sm disabled:opacity-50"
+          className="btn-primary !px-6 !py-2 text-sm disabled:opacity-50"
         >
           {submitting ? "Posting..." : "Post"}
         </button>
