@@ -3,7 +3,7 @@ import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { getSocket } from "../lib/socket";
 import { timeAgo } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { Users, ArrowLeft, Send, Info, X, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CodeBlock } from "../components/CodeBlock";
@@ -250,8 +250,8 @@ export default function Messages() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto flex h-[calc(100vh-61px)] max-w-6xl">
+      <AppShell width="full">
+      <div className="mx-auto flex h-[calc(100vh-150px)] max-w-6xl">
         {/* ---- قائمة المحادثات ---- */}
         <aside
           className={
@@ -472,7 +472,8 @@ export default function Messages() {
             </>
           )}
         </section>
-      </main>
+      </div>
+    </AppShell>
     </>
   );
 }

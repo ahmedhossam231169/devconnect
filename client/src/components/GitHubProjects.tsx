@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { GitHubProject } from "../lib/types";
 import { Star, GitFork } from "lucide-react";
@@ -9,7 +9,14 @@ const LANG_COLOR: Record<string, string> = {
   Ruby: "#701516", Swift: "#F05138", Kotlin: "#A97BFF", HTML: "#e34c26", CSS: "#563d7c",
 };
 
-export function GitHubProjects({ username }: { username: string }) {
+export function GitHubProjects({
+  username,
+  fallback = null,
+}: {
+  username: string;
+  /** بيتعرض لو مفيش GitHub متربط أو مفيش مشاريع (بدل ما القسم يختفي) */
+  fallback?: ReactNode;
+}) {
   const [projects, setProjects] = useState<GitHubProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
@@ -28,8 +35,8 @@ export function GitHubProjects({ username }: { username: string }) {
 
   if (loading) return <p className="py-4 text-center text-sm text-mist-400">Loading projects...</p>;
 
-  // مفيش GitHub متربط أو مفيش مشاريع — ما نعرضش القسم أصلاً
-  if (!connected || projects.length === 0) return null;
+  // مفيش GitHub متربط أو مفيش مشاريع — نعرض الـ fallback (أو مفيش حاجة)
+  if (!connected || projects.length === 0) return <>{fallback}</>;
 
   return (
     <div className="mt-4">

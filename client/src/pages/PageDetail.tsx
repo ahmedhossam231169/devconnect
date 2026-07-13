@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../lib/api";
 import type { PageDetail as PageDetailType, Post } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { Building2, Rocket, Globe, Users, Package, FileText, ArrowLeft, Settings, X, Camera, ShieldPlus, ShieldMinus, UserPlus, Trash2 } from "lucide-react";
 import { Composer } from "../components/Composer";
 import { PostCard } from "../components/PostCard";
@@ -120,9 +120,7 @@ export default function PageDetail() {
   }
 
   return (
-    <>
-      <Navbar />
-      <main className="mx-auto max-w-2xl px-4 py-6">
+    <AppShell width="narrow">
         <Link to="/pages" className="mb-4 inline-flex items-center gap-1.5 text-sm text-mist-400 hover:text-mist-100">
           <ArrowLeft size={15} /> Back to Pages
         </Link>
@@ -291,7 +289,6 @@ export default function PageDetail() {
             )}
           </>
         )}
-      </main>
-    </>
+    </AppShell>
   );
 }

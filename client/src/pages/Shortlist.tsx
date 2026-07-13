@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import type { ShortlistCandidate } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { X, StickyNote } from "lucide-react";
 
 const AVAIL_BADGE: Record<string, { label: string; cls: string }> = {
@@ -45,8 +45,7 @@ export default function Shortlist() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <AppShell width="default">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Saved Candidates</h1>
           <p className="mt-1 text-sm text-mist-400">
@@ -120,7 +119,7 @@ export default function Shortlist() {
             );
           })}
         </div>
-      </main>
+      </AppShell>
     </>
   );
 }

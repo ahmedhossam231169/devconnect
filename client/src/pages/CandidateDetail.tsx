@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import type { Profile } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { ShortlistButton } from "../components/ShortlistButton";
 import { GitHubProjects } from "../components/GitHubProjects";
 
@@ -53,8 +53,7 @@ export default function CandidateDetail() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      <AppShell width="default">
         <Link to="/talent" className="mb-4 inline-block text-sm text-mist-400 hover:text-mist-100">
           Back to Talent Search
         </Link>
@@ -186,7 +185,7 @@ export default function CandidateDetail() {
             </div>
           </div>
         )}
-      </main>
+      </AppShell>
     </>
   );
 }

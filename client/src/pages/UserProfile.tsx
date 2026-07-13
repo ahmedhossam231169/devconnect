@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import type { Profile, FeedItem } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { PostCard } from "../components/PostCard";
 import { Zap, MapPin, Briefcase, Clock, MessageCircle, Code2, Link2, Repeat2 } from "lucide-react";
 import { RelationActions } from "../components/RelationActions";
@@ -67,8 +67,7 @@ export default function UserProfile() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-2xl px-4 py-6">
+      <AppShell width="narrow">
         {loading && <p className="py-8 text-center text-sm text-mist-400">Loading profile...</p>}
 
         {error && (
@@ -186,7 +185,7 @@ export default function UserProfile() {
             )}
           </>
         )}
-      </main>
+      </AppShell>
     </>
   );
 }

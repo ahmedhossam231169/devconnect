@@ -3,30 +3,31 @@
 @tailwind utilities;
 
 @layer base {
-  /* ===== الوضع الليلي (الافتراضي) ===== */
+  /* ===== الوضع الليلي (الافتراضي) =====
+     القيم مستخرجة بالبيكسل من mockups الـ Visily (يوليو 2026) */
   :root {
-    --ink-950: 10 14 23;    /* #0A0E17 أغمق خلفية */
-    --ink-900: 15 20 32;    /* #0F1420 */
-    --ink-800: 22 28 44;    /* #161C2C الكروت */
-    --ink-700: 31 39 57;    /* #1F2739 borders */
-    --brand-400: 139 124 255;
-    --brand-500: 108 92 231;
-    --brand-600: 90 75 209;
-    --mist-100: 237 239 247; /* نص أساسي */
-    --mist-400: 154 163 184; /* نص ثانوي */
-    --mist-600: 130 140 160;  /* نص خافت */
+    --ink-950: 23 23 30;    /* #17171E خلفية الصفحة */
+    --ink-900: 25 28 34;    /* #191C22 الـ sidebar/topbar والأسطح الغاطسة */
+    --ink-800: 33 36 46;    /* #21242E الكروت */
+    --ink-700: 52 58 70;    /* #343A46 borders */
+    --brand-400: 129 140 248; /* #818CF8 لينكات ونصوص بنفسجية */
+    --brand-500: 99 102 241;  /* #6366F1 اللون الأساسي (مقاس من الـ CTA) */
+    --brand-600: 79 70 229;   /* #4F46E5 hover */
+    --mist-100: 243 244 248; /* نص أساسي */
+    --mist-400: 156 163 181; /* نص ثانوي */
+    --mist-600: 115 123 142; /* نص خافت */
   }
 
   /* ===== الوضع النهاري ===== */
   :root.light {
-    --ink-950: 247 248 251;  /* خلفية فاتحة جدًا */
+    --ink-950: 246 247 250;  /* خلفية فاتحة جدًا */
     --ink-900: 255 255 255;  /* أبيض */
     --ink-800: 255 255 255;  /* الكروت بيضا */
-    --ink-700: 225 228 236;  /* borders فاتحة */
-    --brand-400: 108 92 231;
-    --brand-500: 108 92 231;
-    --brand-600: 90 75 209;
-    --mist-100: 26 32 46;    /* نص غامق (أساسي) */
+    --ink-700: 228 231 238;  /* borders فاتحة */
+    --brand-400: 99 102 241;
+    --brand-500: 99 102 241;
+    --brand-600: 79 70 229;
+    --mist-100: 23 27 38;    /* نص غامق (أساسي) */
     --mist-400: 90 98 116;   /* نص ثانوي */
     --mist-600: 100 108 126; /* نص خافت */
   }
@@ -57,11 +58,19 @@
            focus-visible:outline-brand-400;
   }
   .card {
-    @apply rounded-xl border border-ink-700 bg-ink-800 p-6;
+    @apply rounded-2xl border border-ink-700/60 bg-ink-800 p-6;
   }
   .input-field {
     @apply w-full rounded-lg border border-ink-700 bg-ink-900 px-4 py-2.5 text-mist-100
            placeholder:text-mist-600 focus:border-brand-500 focus:outline-none;
+  }
+  /* عنصر في الـ sidebar الجانبي — ستايل الديزاين الجديد */
+  .side-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold
+           text-mist-400 transition-colors hover:bg-ink-800 hover:text-mist-100;
+  }
+  .side-link-active {
+    @apply bg-brand-500/15 text-brand-400 hover:bg-brand-500/15 hover:text-brand-400;
   }
 }
 

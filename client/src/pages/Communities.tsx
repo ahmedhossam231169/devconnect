@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "../lib/api";
 import { COMMUNITY_CATEGORIES, type CommunityCategory, type CommunityListItem } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { Users, Atom, Cog, Brain, Server, Smartphone, BarChart3, Hexagon } from "lucide-react";
 
 const CATEGORY_ICONS: Record<string, typeof Atom> = {
@@ -85,8 +85,7 @@ export default function Communities() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <AppShell width="wide">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Communities Hub</h1>
@@ -186,7 +185,7 @@ export default function Communities() {
             </div>
           ))}
         </div>
-      </main>
+      </AppShell>
     </>
   );
 }

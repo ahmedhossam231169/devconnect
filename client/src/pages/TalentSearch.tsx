@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { SPECIALTIES, type Candidate, type Specialty, type Availability } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 
 interface Filters {
   q: string;
@@ -98,8 +98,7 @@ export default function TalentSearch() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <AppShell width="wide">
         <h1 className="mb-1 text-2xl font-bold">Talent Search</h1>
         <p className="mb-6 text-sm text-mist-400">Filter the developer pool by role, experience, and stack.</p>
 
@@ -275,7 +274,7 @@ export default function TalentSearch() {
             )}
           </div>
         </div>
-      </main>
+      </AppShell>
     </>
   );
 }

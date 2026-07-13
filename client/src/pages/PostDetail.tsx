@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import type { Post } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { PostCard } from "../components/PostCard";
 
 export default function PostDetail() {
@@ -23,8 +23,8 @@ export default function PostDetail() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
+      <AppShell width="narrow">
+      <div className="space-y-4">
         {loading && <p className="py-8 text-center text-sm text-mist-400">Loading post...</p>}
 
         {error && (
@@ -34,7 +34,8 @@ export default function PostDetail() {
         )}
 
         {post && <PostCard post={post} />}
-      </main>
+      </div>
+    </AppShell>
     </>
   );
 }

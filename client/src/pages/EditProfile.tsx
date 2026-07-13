@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { SPECIALTIES, type Profile, type Specialty, type Availability } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { useAuth } from "../lib/auth";
 import { ImageUpload } from "../components/ImageUpload";
 
@@ -82,8 +82,7 @@ export default function EditProfile() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-2xl px-4 py-8">
+      <AppShell width="narrow">
         <BackToProfile />
         <h1 className="mb-1 text-2xl font-bold">Edit Profile</h1>
         <p className="mb-6 text-sm text-mist-400">
@@ -280,7 +279,7 @@ export default function EditProfile() {
             </div>
           </div>
         )}
-      </main>
+      </AppShell>
     </>
   );
 }

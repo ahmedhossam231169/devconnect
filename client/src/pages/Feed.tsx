@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import type { FeedItem } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { Composer } from "../components/Composer";
 import { PostCard } from "../components/PostCard";
 import { Repeat2 } from "lucide-react";
@@ -64,9 +64,8 @@ export default function Feed() {
   );
 
   return (
-    <>
-      <Navbar />
-      <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
+    <AppShell width="narrow">
+      <div className="space-y-4">
         <Composer onCreated={(post) => setItems((p) => [{ kind: "post", post }, ...p])} />
 
         <div className="flex gap-1">
@@ -120,7 +119,7 @@ export default function Feed() {
             {loadingMore ? "Loading..." : "Load more"}
           </button>
         )}
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }

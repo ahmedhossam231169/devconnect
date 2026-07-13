@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import type { UserCard } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 
 export default function Friends() {
   const navigate = useNavigate();
@@ -78,8 +78,7 @@ export default function Friends() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-2xl px-4 py-6">
+      <AppShell width="narrow">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Friends</h1>
           {friends.length > 0 && (
@@ -178,7 +177,7 @@ export default function Friends() {
             )}
           </>
         )}
-      </main>
+      </AppShell>
     </>
   );
 }

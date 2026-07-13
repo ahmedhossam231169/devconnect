@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import { api } from "../lib/api";
 
 interface SearchUser {
@@ -63,10 +64,12 @@ export function SearchBar() {
   const hasResults = users.length > 0 || posts.length > 0;
 
   return (
-    <div ref={boxRef} className="relative hidden max-w-xs flex-1 lg:block">
+    <div ref={boxRef} className="relative hidden w-full max-w-md flex-1 lg:block">
+      {/* بحث بستايل الـ pill — زي الـ topbar في الديزاين */}
+      <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-mist-600" />
       <input
-        className="input-field !py-2 text-sm"
-        placeholder="Search developers, posts..."
+        className="w-full rounded-full border border-transparent bg-ink-800 py-2 pl-10 pr-4 text-sm text-mist-100 placeholder:text-mist-600 focus:border-brand-500 focus:outline-none"
+        placeholder="Search projects, developers..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => q.trim().length >= 2 && setOpen(true)}

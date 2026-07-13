@@ -23,6 +23,7 @@ import Pages from "./pages/Pages";
 import PageDetail from "./pages/PageDetail";
 import Onboarding from "./pages/Onboarding";
 import Shortlist from "./pages/Shortlist";
+import Projects from "./pages/Projects";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/pages" element={<ProtectedRoute><Pages /></ProtectedRoute>} />
           <Route path="/pages/:slug" element={<ProtectedRoute><PageDetail /></ProtectedRoute>} />
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/shortlist" element={<RecruiterRoute><Shortlist /></RecruiterRoute>} />
 
           <Route path="/talent" element={<RecruiterRoute><TalentSearch /></RecruiterRoute>} />

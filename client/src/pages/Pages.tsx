@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { PAGE_CATEGORIES, type PageCategory, type PageListItem } from "../lib/types";
-import { Navbar } from "../components/Navbar";
+import { AppShell } from "../components/AppShell";
 import { Building2, Rocket, Globe, Users, Package, FileText, Plus } from "lucide-react";
 
 const CATEGORY_ICON: Record<string, typeof Building2> = {
@@ -82,8 +82,7 @@ export default function Pages() {
 
   return (
     <>
-      <Navbar />
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      <AppShell width="default">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Pages</h1>
@@ -152,7 +151,7 @@ export default function Pages() {
             </div>
           ))}
         </div>
-      </main>
+      </AppShell>
     </>
   );
 }
