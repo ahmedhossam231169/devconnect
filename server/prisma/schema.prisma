@@ -283,6 +283,8 @@ model Community {
   slug        String   @unique
   description String?
   category    String // "Frontend", "Backend", "AI & ML", "DevOps", "Mobile"...
+  avatarUrl   String? // لوجو الكوميونتي (Cloudinary)
+  coverUrl    String? // صورة الغلاف في كارت الـ Hub — الديزاين الجديد
   // وضع المدونة: لو true الأدمنّات بس اللي بينشروا (زي الـ Pages)
   adminOnlyPosting Boolean @default(false)
   // كوميونتي خاص: الانضمام بطلب وموافقة أدمن، والبوستات للأعضاء بس

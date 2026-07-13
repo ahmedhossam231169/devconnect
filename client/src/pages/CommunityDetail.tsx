@@ -157,18 +157,37 @@ export default function CommunityDetail() {
         {loading && <p className="py-8 text-center text-sm text-mist-400">Loading...</p>}
 
         {!loading && community && (
-          <div className="card">
+          <div className="card overflow-hidden !p-0">
+            {/* غلاف الكوميونتي — صورة أو تدرج حسب الديزاين الجديد */}
+            <div
+              className="h-28 w-full"
+              style={
+                community.coverUrl
+                  ? { backgroundImage: `url(${community.coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                  : { background: "linear-gradient(120deg, #312e81, #4338ca)" }
+              }
+            />
+            <div className="p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="flex items-center gap-2 text-2xl font-bold">
-                  {community.name}
-                  {community.isPrivate && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-ink-700 bg-ink-900 px-2.5 py-1 text-xs font-semibold text-mist-400">
-                      <Lock size={11} /> Private
-                    </span>
+              <div className="flex items-start gap-4">
+                <span className="-mt-14 flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-ink-800 bg-ink-900 text-xl font-bold text-brand-400">
+                  {community.avatarUrl ? (
+                    <img src={community.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    community.name[0]?.toUpperCase()
                   )}
-                </h1>
-                <p className="mt-1 text-sm text-mist-400">{community.category} · {community.memberCount} members</p>
+                </span>
+                <div>
+                  <h1 className="flex items-center gap-2 text-2xl font-bold">
+                    {community.name}
+                    {community.isPrivate && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-ink-700 bg-ink-900 px-2.5 py-1 text-xs font-semibold text-mist-400">
+                        <Lock size={11} /> Private
+                      </span>
+                    )}
+                  </h1>
+                  <p className="mt-1 text-sm text-mist-400">{community.category} · {community.memberCount} members</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
               {community.joinedByMe && (
@@ -232,6 +251,7 @@ export default function CommunityDetail() {
                   </div>
                 ))}
               </div>
+            </div>
             </div>
           </div>
         )}

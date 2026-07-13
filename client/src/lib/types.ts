@@ -119,7 +119,11 @@ export interface CommunityListItem {
   slug: string;
   description: string | null;
   category: string;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  isPrivate: boolean;
   memberCount: number;
+  postsThisWeek: number; // بادج مستوى النشاط في كارت الـ Hub
   joinedByMe: boolean;
 }
 
@@ -136,6 +140,8 @@ export interface CommunityDetail {
   slug: string;
   description: string | null;
   category: string;
+  avatarUrl: string | null;
+  coverUrl: string | null;
   adminOnlyPosting: boolean;
   isPrivate: boolean;
   memberCount: number;

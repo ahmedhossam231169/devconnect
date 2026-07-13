@@ -26,10 +26,16 @@ communitiesRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const category = typeof req.query.category === "string" ? req.query.category : undefined;
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
     const userId = req.user!.userId;
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     const communities = await prisma.community.findMany({
-      where: category ? { category } : {},
+      where: {
+        ...(category ? { category } : {}),
+        // بحث بالاسم أو الوصف — خانة البحث في الـ Hub
+        ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }] } : {}),
+      },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -37,19 +43,33 @@ communitiesRouter.get(
         slug: true,
         description: true,
         category: true,
+        avatarUrl: true,
+        coverUrl: true,
+        isPrivate: true,
         createdAt: true,
-        members: { select: { userId: true } },
+        members: { where: { userId }, select: { userId: true } },
+        _count: {
+          select: {
+            members: true,
+            // نشاط الأسبوع — بادج الـ activity في كارت الديزاين
+            posts: { where: { createdAt: { gte: weekAgo } } },
+          },
+        },
       },
     });
 
-    const shaped = communities.map((c: any) => ({
+    const shaped = communities.map((c) => ({
       id: c.id,
       name: c.name,
       slug: c.slug,
       description: c.description,
       category: c.category,
-      memberCount: c.members.length,
-      joinedByMe: c.members.some((m: any) => m.userId === userId),
+      avatarUrl: c.avatarUrl,
+      coverUrl: c.coverUrl,
+      isPrivate: c.isPrivate,
+      memberCount: c._count.members,
+      postsThisWeek: c._count.posts,
+      joinedByMe: c.members.length > 0,
     }));
 
     res.json({ ok: true, communities: shaped });
@@ -72,6 +92,9 @@ communitiesRouter.post(
         slug,
         description: input.description ?? null,
         category: input.category,
+        avatarUrl: input.avatarUrl || null,
+        coverUrl: input.coverUrl || null,
+        isPrivate: input.isPrivate ?? false,
         members: { create: [{ userId: req.user!.userId, role: "ADMIN" }] },
       },
       select: { id: true, name: true, slug: true, description: true, category: true },
@@ -97,6 +120,8 @@ communitiesRouter.get(
         slug: true,
         description: true,
         category: true,
+        avatarUrl: true,
+        coverUrl: true,
         adminOnlyPosting: true,
         isPrivate: true,
         createdAt: true,
@@ -389,6 +414,8 @@ communitiesRouter.patch(
       description: z.string().max(500).optional(),
       adminOnlyPosting: z.boolean().optional(),
       isPrivate: z.boolean().optional(),
+      avatarUrl: z.string().url().refine((v) => /^https?:\/\//i.test(v)).or(z.literal("")).optional(),
+      coverUrl: z.string().url().refine((v) => /^https?:\/\//i.test(v)).or(z.literal("")).optional(),
     }).parse(req.body);
 
     const updated = await prisma.community.update({
