@@ -18,6 +18,7 @@ import { pagesRouter } from "./routes/pages.js";
 import { shortlistRouter } from "./routes/shortlist.js";
 import { searchRouter } from "./routes/search.js";
 import { feedRouter } from "./routes/feed.js";
+import { jobsRouter } from "./routes/jobs.js";
 import { setupSocket } from "./socket.js";
 import { getAllowedOrigins } from "./lib/cors.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
@@ -68,6 +69,7 @@ app.use("/api/pages", pagesRouter);
 app.use("/api/shortlist", shortlistRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/feed", feedRouter);
+app.use("/api/jobs", jobsRouter);
 
 // ---------- Error handling (لازم يفضلوا آخر حاجة) ----------
 app.use(notFoundHandler);

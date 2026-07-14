@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Activity, Home, User, Layers, Users, MessageSquare, Contact, Flag,
-  Search, Bookmark, Settings, LogOut, Menu, X, Sun, Moon,
+  Search, Bookmark, Settings, LogOut, Menu, X, Sun, Moon, LayoutGrid, Briefcase,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
@@ -44,9 +44,10 @@ export function AppShell({
     { to: "/pages", label: "Pages", icon: Flag },
   ];
 
-  // ملحوظة: Dashboard و Jobs هيتضافوا هنا في مرحلة الـ Jobs system
   const recruiterLinks: NavItem[] = [
+    { to: "/talent/dashboard", label: "Dashboard", icon: LayoutGrid },
     { to: "/talent", label: "Talent Search", icon: Search },
+    { to: "/jobs", label: "Jobs", icon: Briefcase },
     { to: "/shortlist", label: "Shortlist", icon: Bookmark },
     { to: "/feed", label: "Feed", icon: Home },
     { to: "/communities", label: "Communities", icon: Users },

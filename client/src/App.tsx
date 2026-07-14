@@ -24,6 +24,8 @@ import PageDetail from "./pages/PageDetail";
 import Onboarding from "./pages/Onboarding";
 import Shortlist from "./pages/Shortlist";
 import Projects from "./pages/Projects";
+import RecruiterDashboard from "./pages/RecruiterDashboard";
+import Jobs from "./pages/Jobs";
 
 export default function App() {
   return (
@@ -53,6 +55,8 @@ export default function App() {
           <Route path="/shortlist" element={<RecruiterRoute><Shortlist /></RecruiterRoute>} />
 
           <Route path="/talent" element={<RecruiterRoute><TalentSearch /></RecruiterRoute>} />
+          <Route path="/talent/dashboard" element={<RecruiterRoute><RecruiterDashboard /></RecruiterRoute>} />
+          <Route path="/jobs" element={<RecruiterRoute><Jobs /></RecruiterRoute>} />
           <Route path="/talent/:username" element={<RecruiterRoute><CandidateDetail /></RecruiterRoute>} />
         </Routes>
       </BrowserRouter>

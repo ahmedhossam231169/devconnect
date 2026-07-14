@@ -68,6 +68,8 @@ model User {
   pageFollowing  PageFollower[] @relation("PageFollowing")
   shortlistsMade ShortlistEntry[] @relation("ShortlistsMade")
   shortlistedAs  ShortlistEntry[] @relation("ShortlistedAs")
+  jobsPosted     Job[]            @relation("JobsPosted")
+  applications   Application[]    @relation("ApplicationsAsCandidate")
   comments Comment[]
   likes    Like[]
   reposts  Repost[]
@@ -454,6 +456,57 @@ model PageFollower {
 
   @@id([pageId, userId])
   @@index([userId])
+}
+
+// ---------- Group 5: Jobs & Hiring Pipeline (الديزاين الجديد) ----------
+
+enum JobStatus {
+  OPEN
+  CLOSED
+}
+
+// مراحل الـ pipeline — عمود Status في جدول الـ Talent Pool بالديزاين
+enum ApplicationStage {
+  SOURCED
+  SCREENING
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+model Job {
+  id             String    @id @default(cuid())
+  recruiterId    String
+  recruiter      User      @relation("JobsPosted", fields: [recruiterId], references: [id], onDelete: Cascade)
+  title          String // "Senior React Developer"
+  description    String?
+  location       String? // "Remote", "San Francisco, CA"...
+  employmentType String? // "Full-time", "Contract"...
+  skills         String[] // المهارات المطلوبة — الـ match score بيتحسب منها
+  status         JobStatus @default(OPEN)
+  createdAt      DateTime  @default(now())
+
+  applications Application[]
+
+  @@index([recruiterId, status])
+}
+
+// ربط مرشح بوظيفة + مرحلته في الـ pipeline
+model Application {
+  id          String           @id @default(cuid())
+  jobId       String
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   User             @relation("ApplicationsAsCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+  stage       ApplicationStage @default(SOURCED)
+  note        String? // ملاحظة الـ recruiter على المرشح في الوظيفة دي
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([jobId, candidateId]) // المرشح مرة واحدة في كل وظيفة
+  @@index([jobId, stage])
+  @@index([candidateId])
 }
 
 // ---------- Group 4: Recruiter Shortlist ----------
