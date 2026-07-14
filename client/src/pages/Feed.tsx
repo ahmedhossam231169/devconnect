@@ -67,7 +67,7 @@ export default function Feed() {
 
   return (
     <AppShell width="wide" sidebarExtra={<ProfileStatsWidget stats={sidebar?.myStats} />}>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         {/* العمود الرئيسي */}
         <div className="space-y-4">
           <Composer onCreated={(post) => setItems((p) => [{ kind: "post", post }, ...p])} />
