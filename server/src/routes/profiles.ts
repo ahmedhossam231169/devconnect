@@ -242,6 +242,46 @@ interface GitHubRepo {
   fork: boolean;
 }
 
+// ---------------------------------------------------------------
+// GitHub API helper — token اختياري + كاش في الذاكرة
+// من غير GITHUB_TOKEN الحد 60 طلب/ساعة *للـ IP كله* — على استضافة
+// مشتركة (Render) بينفد فورًا. بالـ token بيبقى 5000/ساعة.
+// الكاش بيوفر الطلبات أصلًا: نفس البروفايل مش بيتسأل من GitHub
+// غير مرة كل 10 دقايق مهما اتفتح.
+// ---------------------------------------------------------------
+const ghCache = new Map<string, { at: number; data: unknown }>();
+const GH_CACHE_TTL = 10 * 60 * 1000;
+
+type GhResult =
+  | { ok: true; data: unknown }
+  | { ok: false; rateLimited: boolean; status: number };
+
+async function ghJson(url: string): Promise<GhResult> {
+  const cached = ghCache.get(url);
+  if (cached && Date.now() - cached.at < GH_CACHE_TTL) {
+    return { ok: true, data: cached.data };
+  }
+
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json" };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      // 403/429 مع remaining=0 = rate limit — بنفرّقها عشان الرسالة للمستخدم تبقى صادقة
+      const rateLimited =
+        (res.status === 403 || res.status === 429) &&
+        res.headers.get("x-ratelimit-remaining") === "0";
+      return { ok: false, rateLimited, status: res.status };
+    }
+    const data = (await res.json()) as unknown;
+    ghCache.set(url, { at: Date.now(), data });
+    return { ok: true, data };
+  } catch {
+    return { ok: false, rateLimited: false, status: 0 };
+  }
+}
+
 profilesRouter.get(
   "/:username/github-projects",
   requireAuth,
@@ -264,19 +304,25 @@ profilesRouter.get(
       return res.json({ ok: true, projects: [], stats: null, githubConnected: false });
     }
 
-    try {
-      // الـ repos + بيانات الحساب في نفس الوقت — عشان نطلع stats كمان
-      const ghHeaders = { Accept: "application/vnd.github+json" };
-      const [reposRes, userRes] = await Promise.all([
-        fetch(`https://api.github.com/users/${ghUsername}/repos?sort=updated&per_page=100`, { headers: ghHeaders }),
-        fetch(`https://api.github.com/users/${ghUsername}`, { headers: ghHeaders }),
-      ]);
-      if (!reposRes.ok) {
-        return res.json({ ok: true, projects: [], stats: null, githubConnected: true, error: "Couldn't fetch repos" });
-      }
-      const repos = (await reposRes.json()) as GitHubRepo[];
-      const ghUser = userRes.ok
-        ? ((await userRes.json()) as { public_repos: number; followers: number })
+    // الـ repos + بيانات الحساب في نفس الوقت — عشان نطلع stats كمان
+    const [reposResult, userResult] = await Promise.all([
+      ghJson(`https://api.github.com/users/${ghUsername}/repos?sort=updated&per_page=100`),
+      ghJson(`https://api.github.com/users/${ghUsername}`),
+    ]);
+    if (!reposResult.ok) {
+      // بنقول للـ client السبب الحقيقي — عشان ما يعرضش "مفيش مشاريع" وهي موجودة
+      return res.json({
+        ok: true,
+        projects: [],
+        stats: null,
+        githubConnected: true,
+        error: reposResult.rateLimited ? "rate_limited" : "unavailable",
+      });
+    }
+    {
+      const repos = reposResult.data as GitHubRepo[];
+      const ghUser = userResult.ok
+        ? (userResult.data as { public_repos: number; followers: number })
         : null;
 
       // نستبعد الـ forks ونرتب بالنجوم، ونرجّع الأهم بس
@@ -312,8 +358,6 @@ profilesRouter.get(
       };
 
       res.json({ ok: true, projects, stats, githubConnected: true });
-    } catch {
-      res.json({ ok: true, projects: [], stats: null, githubConnected: true, error: "GitHub is unavailable" });
     }
   })
 );
@@ -334,7 +378,6 @@ profilesRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const { identifier } = githubLinkSchema.parse(req.body);
-    const ghHeaders = { Accept: "application/vnd.github+json" };
 
     // 1) نستخرج الـ username من اللي المستخدم كتبه: لينك أو إيميل أو username
     let login: string | null = null;
@@ -343,12 +386,11 @@ profilesRouter.post(
       login = urlMatch[1]!;
     } else if (identifier.includes("@")) {
       // إيميل → GitHub search API (بيلاقي الحساب فقط لو الإيميل معلن في البروفايل)
-      const sRes = await fetch(
-        `https://api.github.com/search/users?q=${encodeURIComponent(identifier)}+in:email&per_page=1`,
-        { headers: ghHeaders }
+      const sResult = await ghJson(
+        `https://api.github.com/search/users?q=${encodeURIComponent(identifier)}+in:email&per_page=1`
       );
-      if (sRes.ok) {
-        const s = (await sRes.json()) as { items?: { login: string }[] };
+      if (sResult.ok) {
+        const s = sResult.data as { items?: { login: string }[] };
         login = s.items?.[0]?.login ?? null;
       }
       if (!login) {
@@ -365,10 +407,12 @@ profilesRouter.post(
     }
 
     // 2) نتأكد إن الحساب موجود فعلًا (وناخد الـ casing الرسمي بتاعه)
-    const uRes = await fetch(`https://api.github.com/users/${login}`, { headers: ghHeaders });
-    if (uRes.status === 404) throw Errors.notFound("GitHub account");
-    if (!uRes.ok) throw Errors.internal("GitHub is unavailable right now — try again in a minute");
-    const ghAccount = (await uRes.json()) as { login: string };
+    const uResult = await ghJson(`https://api.github.com/users/${login}`);
+    if (!uResult.ok) {
+      if (uResult.status === 404) throw Errors.notFound("GitHub account");
+      throw Errors.internal("GitHub is unavailable right now — try again in a minute");
+    }
+    const ghAccount = uResult.data as { login: string };
 
     // 3) نخزنه على البروفايل — من هنا ورايح المشاريع والـ stats بيظهروا تلقائيًا
     await prisma.profile.update({

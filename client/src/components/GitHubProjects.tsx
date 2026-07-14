@@ -37,15 +37,17 @@ export function GitHubProjects({
   const [stats, setStats] = useState<GitHubStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(true);
+  const [ghError, setGhError] = useState<string | null>(null);
 
   useEffect(() => {
-    api<{ ok: true; projects: GitHubProject[]; stats: GitHubStats | null; githubConnected: boolean }>(
+    api<{ ok: true; projects: GitHubProject[]; stats: GitHubStats | null; githubConnected: boolean; error?: string }>(
       `/api/profiles/${username}/github-projects`
     )
       .then((r) => {
         setProjects(r.projects);
         setStats(r.stats);
         setConnected(r.githubConnected);
+        setGhError(r.error ?? null);
       })
       .catch(() => setConnected(false))
       .finally(() => setLoading(false));
@@ -55,6 +57,20 @@ export function GitHubProjects({
 
   // مفيش GitHub متربط — نعرض الـ fallback (فورم الربط / رسالة)
   if (!connected) return <>{fallback}</>;
+
+  // GitHub رفض الطلب (rate limit / واقع) — رسالة صادقة بدل "مفيش مشاريع" المضللة
+  if (ghError) {
+    return (
+      <div className="card !p-8 text-center">
+        <p className="font-semibold">GitHub is busy right now</p>
+        <p className="mt-1 text-sm text-mist-400">
+          {ghError === "rate_limited"
+            ? "We hit GitHub's request limit — your projects will be back within the hour. Try refreshing in a bit."
+            : "Couldn't reach GitHub — your projects will show up again shortly."}
+        </p>
+      </div>
+    );
+  }
 
   // متربط بس مفيش مشاريع عامة — رسالة واضحة بدل صفحة فاضية
   if (projects.length === 0) {

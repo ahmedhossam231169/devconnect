@@ -49,6 +49,8 @@ export default function UserProfile() {
   const [reputation, setReputation] = useState(0);
   const [followers, setFollowers] = useState(0);
   const [projects, setProjects] = useState<GitHubProject[]>([]);
+  // GitHub رفض الطلب (rate limit مثلًا) — عشان نفرّق عن "مفيش مشاريع أصلًا"
+  const [ghError, setGhError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [tab, setTab] = useState<Tab>("projects");
   const [loading, setLoading] = useState(true);
@@ -78,8 +80,11 @@ export default function UserProfile() {
       .finally(() => setLoading(false));
 
     // مشاريع GitHub + الـ activity — مش حرجين، بيتحملوا في الخلفية
-    api<{ ok: true; projects: GitHubProject[]; githubConnected: boolean }>(`/api/profiles/${username}/github-projects`)
-      .then((r) => setProjects(r.projects))
+    api<{ ok: true; projects: GitHubProject[]; githubConnected: boolean; error?: string }>(`/api/profiles/${username}/github-projects`)
+      .then((r) => {
+        setProjects(r.projects);
+        setGhError(r.error ?? null);
+      })
       .catch(() => {});
     api<{ ok: true; items: ActivityItem[] }>(`/api/profiles/${username}/activity`)
       .then((r) => setActivity(r.items))
@@ -260,9 +265,11 @@ export default function UserProfile() {
               {tab === "projects" && (
                 projects.length === 0 ? (
                   <div className="card !p-8 text-center text-sm text-mist-400">
-                    {isMe
-                      ? "No GitHub projects yet — connect your GitHub username in settings."
-                      : "No public GitHub projects to show."}
+                    {ghError
+                      ? "GitHub is busy right now — projects will be back shortly."
+                      : isMe
+                        ? "No GitHub projects yet — connect your GitHub username in settings."
+                        : "No public GitHub projects to show."}
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -303,7 +310,11 @@ export default function UserProfile() {
               {/* --- GitHub Stats --- */}
               {tab === "stats" && (
                 projects.length === 0 ? (
-                  <div className="card !p-8 text-center text-sm text-mist-400">No GitHub data to summarize.</div>
+                  <div className="card !p-8 text-center text-sm text-mist-400">
+                    {ghError
+                      ? "GitHub is busy right now — stats will be back shortly."
+                      : "No GitHub data to summarize."}
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-4">
