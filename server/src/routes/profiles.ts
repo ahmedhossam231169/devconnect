@@ -261,22 +261,27 @@ profilesRouter.get(
       ghUsername = match?.[1] ?? null;
     }
     if (!ghUsername) {
-      return res.json({ ok: true, projects: [], githubConnected: false });
+      return res.json({ ok: true, projects: [], stats: null, githubConnected: false });
     }
 
     try {
-      const ghRes = await fetch(
-        `https://api.github.com/users/${ghUsername}/repos?sort=updated&per_page=12`,
-        { headers: { Accept: "application/vnd.github+json" } }
-      );
-      if (!ghRes.ok) {
-        return res.json({ ok: true, projects: [], githubConnected: true, error: "Couldn't fetch repos" });
+      // الـ repos + بيانات الحساب في نفس الوقت — عشان نطلع stats كمان
+      const ghHeaders = { Accept: "application/vnd.github+json" };
+      const [reposRes, userRes] = await Promise.all([
+        fetch(`https://api.github.com/users/${ghUsername}/repos?sort=updated&per_page=100`, { headers: ghHeaders }),
+        fetch(`https://api.github.com/users/${ghUsername}`, { headers: ghHeaders }),
+      ]);
+      if (!reposRes.ok) {
+        return res.json({ ok: true, projects: [], stats: null, githubConnected: true, error: "Couldn't fetch repos" });
       }
-      const repos = (await ghRes.json()) as GitHubRepo[];
+      const repos = (await reposRes.json()) as GitHubRepo[];
+      const ghUser = userRes.ok
+        ? ((await userRes.json()) as { public_repos: number; followers: number })
+        : null;
 
       // نستبعد الـ forks ونرتب بالنجوم، ونرجّع الأهم بس
-      const projects = repos
-        .filter((r) => !r.fork)
+      const own = repos.filter((r) => !r.fork);
+      const projects = own
         .sort((a, b) => b.stargazers_count - a.stargazers_count)
         .slice(0, 6)
         .map((r) => ({
@@ -289,10 +294,92 @@ profilesRouter.get(
           updatedAt: r.updated_at,
         }));
 
-      res.json({ ok: true, projects, githubConnected: true });
+      // إحصائيات مجمّعة من الـ repos (بدون الـ forks) + بيانات الحساب
+      const langCount: Record<string, number> = {};
+      for (const r of own) {
+        if (r.language) langCount[r.language] = (langCount[r.language] ?? 0) + 1;
+      }
+      const stats = {
+        username: ghUsername,
+        publicRepos: ghUser?.public_repos ?? own.length,
+        followers: ghUser?.followers ?? 0,
+        totalStars: own.reduce((s, r) => s + r.stargazers_count, 0),
+        totalForks: own.reduce((s, r) => s + r.forks_count, 0),
+        topLanguages: Object.entries(langCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name, count]) => ({ name, count })),
+      };
+
+      res.json({ ok: true, projects, stats, githubConnected: true });
     } catch {
-      res.json({ ok: true, projects: [], githubConnected: true, error: "GitHub is unavailable" });
+      res.json({ ok: true, projects: [], stats: null, githubConnected: true, error: "GitHub is unavailable" });
     }
+  })
+);
+
+// ---------------------------------------------------------------
+// POST /api/profiles/me/github-link — ربط حساب GitHub بالبروفايل
+// بيقبل username أو لينك بروفايل أو إيميل (لو الإيميل معلن على GitHub)
+// للمستخدمين اللي سجلوا بإيميل/Google وعايزين يعرضوا مشاريعهم
+// ---------------------------------------------------------------
+import { z } from "zod";
+
+const githubLinkSchema = z.object({
+  identifier: z.string().trim().min(1, "Enter your GitHub username or email").max(200),
+});
+
+profilesRouter.post(
+  "/me/github-link",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { identifier } = githubLinkSchema.parse(req.body);
+    const ghHeaders = { Accept: "application/vnd.github+json" };
+
+    // 1) نستخرج الـ username من اللي المستخدم كتبه: لينك أو إيميل أو username
+    let login: string | null = null;
+    const urlMatch = identifier.match(/github\.com\/([A-Za-z0-9-]+)/i);
+    if (urlMatch) {
+      login = urlMatch[1]!;
+    } else if (identifier.includes("@")) {
+      // إيميل → GitHub search API (بيلاقي الحساب فقط لو الإيميل معلن في البروفايل)
+      const sRes = await fetch(
+        `https://api.github.com/search/users?q=${encodeURIComponent(identifier)}+in:email&per_page=1`,
+        { headers: ghHeaders }
+      );
+      if (sRes.ok) {
+        const s = (await sRes.json()) as { items?: { login: string }[] };
+        login = s.items?.[0]?.login ?? null;
+      }
+      if (!login) {
+        throw Errors.badRequest(
+          "No GitHub account found with this email — it only works if the email is public on GitHub. Try your GitHub username instead."
+        );
+      }
+    } else {
+      login = identifier;
+    }
+
+    if (!/^[A-Za-z0-9-]{1,39}$/.test(login)) {
+      throw Errors.badRequest("That doesn't look like a valid GitHub username");
+    }
+
+    // 2) نتأكد إن الحساب موجود فعلًا (وناخد الـ casing الرسمي بتاعه)
+    const uRes = await fetch(`https://api.github.com/users/${login}`, { headers: ghHeaders });
+    if (uRes.status === 404) throw Errors.notFound("GitHub account");
+    if (!uRes.ok) throw Errors.internal("GitHub is unavailable right now — try again in a minute");
+    const ghAccount = (await uRes.json()) as { login: string };
+
+    // 3) نخزنه على البروفايل — من هنا ورايح المشاريع والـ stats بيظهروا تلقائيًا
+    await prisma.profile.update({
+      where: { userId: req.user!.userId },
+      data: {
+        githubUsername: ghAccount.login,
+        githubUrl: `https://github.com/${ghAccount.login}`,
+      },
+    });
+
+    res.json({ ok: true, githubUsername: ghAccount.login });
   })
 );
 

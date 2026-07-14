@@ -217,6 +217,15 @@ export interface GitHubProject {
   updatedAt: string;
 }
 
+export interface GitHubStats {
+  username: string;
+  publicRepos: number;
+  followers: number;
+  totalStars: number;
+  totalForks: number;
+  topLanguages: { name: string; count: number }[];
+}
+
 export interface ShortlistCandidate {
   id: string;
   note: string | null;
