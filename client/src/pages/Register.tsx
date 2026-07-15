@@ -123,9 +123,13 @@ export default function Register() {
 
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">Email</label>
-            <input id="email" type="email" className="input-field" placeholder="felix@devconnect.io"
+            <input id="email" type="email" className="input-field" placeholder="felix@devconnect.com"
               value={form.email} onChange={set("email")} autoComplete="email" />
-            <FieldError name="email" />
+            {fieldErrors.email ? (
+              <FieldError name="email" />
+            ) : (
+              <p className="mt-1 text-xs text-mist-600">Must be a <b>@devconnect.com</b> address. Use GitHub or Google to sign up with any email.</p>
+            )}
           </div>
 
           <div>

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// التسجيل بالإيميل/الباسورد من الويب سايت مقصور على إيميلات الشركة.
+// GitHub/Google بيعملوا حساب من مسار تاني (auth callbacks) فمش بيمروا على الـ schema ده.
+export const COMPANY_EMAIL_DOMAIN = "devconnect.com";
+
 // قواعد الـ username: حروف وأرقام و - و _ بس (هيظهر في الـ URL بتاع البروفايل)
 const username = z
   .string()
@@ -9,7 +13,12 @@ const username = z
 
 export const registerSchema = z
   .object({
-    email: z.string().email("Enter a valid email"),
+    email: z
+      .string()
+      .email("Enter a valid email")
+      .refine((e) => e.toLowerCase().endsWith(`@${COMPANY_EMAIL_DOMAIN}`), {
+        message: `Sign-up is restricted to @${COMPANY_EMAIL_DOMAIN} email addresses`,
+      }),
     username,
     password: z.string().min(8, "Password must be at least 8 characters"),
     role: z.enum(["DEVELOPER", "RECRUITER"]).default("DEVELOPER"),
