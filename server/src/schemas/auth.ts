@@ -7,13 +7,31 @@ const username = z
   .max(30, "Username must be at most 30 characters")
   .regex(/^[a-zA-Z0-9_-]+$/, "Only letters, numbers, - and _ are allowed");
 
-export const registerSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  username,
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["DEVELOPER", "RECRUITER"]).default("DEVELOPER"),
-  displayName: z.string().min(2, "Display name is too short").max(60),
-});
+export const registerSchema = z
+  .object({
+    email: z.string().email("Enter a valid email"),
+    username,
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    role: z.enum(["DEVELOPER", "RECRUITER"]).default("DEVELOPER"),
+    displayName: z.string().min(2, "Display name is too short").max(60),
+    // سنين الخبرة إلزامية للاتنين (Developer و Recruiter)
+    yearsExperience: z.coerce
+      .number()
+      .int("Must be a whole number")
+      .min(0, "Can't be negative")
+      .max(60, "That doesn't look right"),
+    // الـ CV إلزامي لل Developer بس — لينك PDF من Cloudinary بعد رفعه في الفورم
+    resumeUrl: z.string().url("Upload your resume first").optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "DEVELOPER") {
+      if (!data.resumeUrl) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["resumeUrl"], message: "Resume (PDF) is required" });
+      } else if (!/\.pdf($|\?)/i.test(data.resumeUrl)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["resumeUrl"], message: "Resume must be a PDF file" });
+      }
+    }
+  });
 
 export const loginSchema = z.object({
   // بنسمح بالدخول بالإيميل أو الـ username — زي الـ mockup بالظبط

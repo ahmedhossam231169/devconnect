@@ -4,6 +4,7 @@ import { api, ApiError, API_BASE_URL } from "../lib/api";
 import { Code2, Target } from "lucide-react";
 import { useAuth, type AuthUser } from "../lib/auth";
 import { AuthLayout, GitHubIcon, GoogleIcon } from "../components/AuthLayout";
+import { FileUpload } from "../components/FileUpload";
 
 type Role = "DEVELOPER" | "RECRUITER";
 
@@ -16,14 +17,19 @@ export default function Register() {
     username: "",
     email: "",
     password: "",
+    yearsExperience: "",
   });
   const [role, setRole] = useState<Role>("DEVELOPER");
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const needsResume = role === "DEVELOPER";
+  const canSubmit = !needsResume || !!resumeUrl;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -33,7 +39,15 @@ export default function Register() {
     try {
       const res = await api<{ ok: true; user: AuthUser; token: string }>(
         "/api/auth/register",
-        { method: "POST", body: JSON.stringify({ ...form, role }) }
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...form,
+            role,
+            yearsExperience: Number(form.yearsExperience),
+            resumeUrl: resumeUrl ?? undefined,
+          }),
+        }
       );
       setSession(res.token, res.user);
       navigate("/onboarding");
@@ -121,13 +135,34 @@ export default function Register() {
             <FieldError name="password" />
           </div>
 
+          <div>
+            <label htmlFor="yearsExperience" className="mb-1.5 block text-sm font-medium">Years of experience</label>
+            <input id="yearsExperience" type="number" min={0} max={60} className="input-field" placeholder="e.g. 3"
+              value={form.yearsExperience} onChange={set("yearsExperience")} />
+            <FieldError name="yearsExperience" />
+          </div>
+
+          {needsResume && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Resume (PDF) — required</label>
+              <FileUpload
+                currentUrl={resumeUrl}
+                onUploaded={setResumeUrl}
+                onCleared={() => setResumeUrl(null)}
+                label="Upload resume"
+                accept="application/pdf"
+              />
+              <FieldError name="resumeUrl" />
+            </div>
+          )}
+
           {error && (
             <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
               {error}
             </p>
           )}
 
-          <button type="submit" disabled={submitting} className="btn-primary w-full justify-center disabled:opacity-60">
+          <button type="submit" disabled={submitting || !canSubmit} className="btn-primary w-full justify-center disabled:opacity-60">
             {submitting ? "Creating account..." : "Create Free Account"}
           </button>
         </form>

@@ -145,7 +145,13 @@ authRouter.post(
         username: input.username,
         passwordHash,
         role: input.role,
-        profile: { create: { displayName: input.displayName } },
+        profile: {
+          create: {
+            displayName: input.displayName,
+            yearsExperience: input.yearsExperience,
+            resumeUrl: input.resumeUrl ?? null,
+          },
+        },
       },
       select: publicUserSelect,
     });
