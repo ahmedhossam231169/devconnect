@@ -41,6 +41,25 @@ export async function sendEmail(to: string, subject: string, html: string) {
   });
 }
 
+// حساب اتسجّل بـ OAuth (Google/GitHub) فمعندوش باسورد — نبعتله ده بدل رابط
+// استرداد معمرش هيشتغل، عشان مايفضلش مستني إيميل مش جاي.
+export function oauthAccountEmail(provider: string): { subject: string; html: string } {
+  return {
+    subject: "About signing in to DevConnect",
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #6C5CE7;">⌁ DevConnect</h2>
+        <p>Someone requested a password reset for your account.</p>
+        <p>Your account doesn't have a password — you signed up with <b>${provider}</b>.
+           Just use the <b>${provider}</b> button on the sign-in page to get in.</p>
+        <p style="color:#888; font-size:13px;">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+    `,
+  };
+}
+
 export function passwordResetEmail(resetLink: string): { subject: string; html: string } {
   return {
     subject: "Reset your DevConnect password",

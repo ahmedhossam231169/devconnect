@@ -364,7 +364,7 @@ authRouter.get(
 // POST /api/auth/forgot-password — الخطوة 1: طلب استعادة كلمة السر
 // ---------------------------------------------------------------
 import { z } from "zod";
-import { sendEmail, passwordResetEmail } from "../lib/email.js";
+import { sendEmail, passwordResetEmail, oauthAccountEmail } from "../lib/email.js";
 
 const forgotSchema = z.object({ email: z.string().email("Enter a valid email") });
 const resetSchema = z.object({
@@ -399,6 +399,12 @@ authRouter.post(
       const clientUrl = getAllowedOrigins()[0];
       const resetLink = `${clientUrl}/reset-password?token=${rawToken}`;
       const mail = passwordResetEmail(resetLink);
+      await sendEmail(email, mail.subject, mail.html);
+    } else if (user && !user.passwordHash) {
+      // حساب OAuth من غير باسورد: رابط الاسترداد مالوش لازمة — نوضّحله يدخل إزاي.
+      // الرد للطالب زي ما هو تمامًا، فمفيش تسريب لوجود الحساب (نفس حماية الـ enumeration).
+      const provider = user.googleId ? "Google" : user.githubId ? "GitHub" : "a social login";
+      const mail = oauthAccountEmail(provider);
       await sendEmail(email, mail.subject, mail.html);
     }
 
