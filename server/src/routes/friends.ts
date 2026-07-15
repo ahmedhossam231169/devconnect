@@ -10,7 +10,17 @@ import { findUserByUsername } from "../lib/users.js";
 
 export const friendsRouter = Router();
 
+// أقصى عدد أصدقاء للحساب الواحد — الحد بيتفحص عند القبول (لأنها لحظة كسب الصديق للطرفين)
+const MAX_FRIENDS = 3000;
+
 const targetSchema = z.object({ username: z.string().min(1) });
+
+// عدد أصدقاء المستخدم = علاقات ACCEPTED اللي هو طرف فيها (باعت أو مستقبِل)
+function friendCount(userId: string) {
+  return prisma.friendship.count({
+    where: { status: "ACCEPTED", OR: [{ requesterId: userId }, { addresseeId: userId }] },
+  });
+}
 
 const userCard = {
   select: {
@@ -33,6 +43,11 @@ friendsRouter.post(
 
     if (other.id === me) throw Errors.badRequest("You can't friend yourself");
     await assertNotBlocked(me, other.id);
+
+    // وصلت للحد؟ مفيش فايدة من إرسال طلب مش هتقدر تقبله
+    if ((await friendCount(me)) >= MAX_FRIENDS) {
+      throw Errors.conflict(`You've reached the maximum of ${MAX_FRIENDS} friends`);
+    }
 
     // في علاقة بالفعل؟ (في أي اتجاه)
     const existing = await prisma.friendship.findFirst({
@@ -85,6 +100,14 @@ friendsRouter.post(
     if (!request) throw Errors.notFound("Friend request");
 
     if (accept) {
+      // الفحص الحاسم للّيمت: القبول بيضيف صديق للطرفين، فلازم الاتنين تحت الحد
+      const [myCount, otherCount] = await Promise.all([friendCount(me), friendCount(other.id)]);
+      if (myCount >= MAX_FRIENDS) {
+        throw Errors.conflict(`You've reached the maximum of ${MAX_FRIENDS} friends`);
+      }
+      if (otherCount >= MAX_FRIENDS) {
+        throw Errors.conflict(`@${other.username} has reached their friend limit`);
+      }
       await prisma.friendship.update({ where: { id: request.id }, data: { status: "ACCEPTED" } });
       const meUser = await prisma.user.findUnique({ where: { id: me }, select: { username: true } });
       await notify({
