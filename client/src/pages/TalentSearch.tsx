@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
-import { SPECIALTIES, type Candidate, type Specialty, type Availability } from "../lib/types";
+import { SPECIALTIES, type Candidate, type Specialty } from "../lib/types";
 import { AppShell } from "../components/AppShell";
 
 interface Filters {
   q: string;
   specialty: Specialty | "";
-  availability: Availability | "";
   minYears: string;
   skills: string[];
 }
 
-const EMPTY_FILTERS: Filters = { q: "", specialty: "", availability: "", minYears: "", skills: [] };
+const EMPTY_FILTERS: Filters = { q: "", specialty: "", minYears: "", skills: [] };
 
 export default function TalentSearch() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -34,7 +33,6 @@ export default function TalentSearch() {
     const params = new URLSearchParams();
     if (f.q) params.set("q", f.q);
     if (f.specialty) params.set("specialty", f.specialty);
-    if (f.availability) params.set("availability", f.availability);
     if (f.minYears) params.set("minYears", f.minYears);
     f.skills.forEach((s) => params.append("skills", s));
     params.set("take", "9");
@@ -124,20 +122,6 @@ export default function TalentSearch() {
               >
                 <option value="">Any</option>
                 {SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Availability</label>
-              <select
-                className="input-field !py-2 text-sm"
-                value={filters.availability}
-                onChange={(e) => setFilters((f) => ({ ...f, availability: e.target.value as Availability | "" }))}
-              >
-                <option value="">Any</option>
-                <option value="OPEN_TO_WORK">Open to work</option>
-                <option value="FREELANCE_ONLY">Freelance only</option>
-                <option value="NOT_LOOKING">Not looking</option>
               </select>
             </div>
 
