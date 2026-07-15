@@ -331,17 +331,17 @@ export function PostCard({
               )}
             </span>
             {pinned && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-400">
+              <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-400">
                 <Pin size={10} /> Pinned
               </span>
             )}
             {p.type === "QUESTION" && (
-              <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 font-semibold text-cyan-400">
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 font-semibold text-cyan-400">
                 Help Wanted
               </span>
             )}
             {p.type === "PROJECT" && (
-              <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-0.5 font-semibold text-brand-400">
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-0.5 font-semibold text-brand-400">
                 Project
               </span>
             )}
