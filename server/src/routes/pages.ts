@@ -21,7 +21,7 @@ const createPageSchema = z.object({
 const postSelect = (viewerId: string) =>
   ({
     id: true, type: true, title: true, body: true,
-    codeLanguage: true, codeContent: true, pinned: true, createdAt: true,
+    codeLanguage: true, codeContent: true, wantsHelp: true, pinned: true, createdAt: true,
     author: { select: { username: true, profile: { select: { displayName: true, avatarUrl: true, headline: true } } } },
     _count: { select: { likes: true, comments: true } },
     likes: { where: { userId: viewerId }, select: { userId: true, type: true } },
@@ -176,6 +176,7 @@ pagesRouter.post(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        wantsHelp: input.type === "SNIPPET" ? input.wantsHelp : false,
         imageUrl: input.imageUrl ?? null,
       },
       select: postSelect(userId),

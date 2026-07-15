@@ -5,11 +5,6 @@ import { Code2, HelpCircle, ImagePlus, Plus, X } from "lucide-react";
 import { useRef } from "react";
 import { useAuth } from "../lib/auth";
 
-const LANGUAGES = [
-  "javascript", "typescript", "python", "rust", "go",
-  "java", "csharp", "cpp", "php", "ruby", "sql", "bash", "json", "css", "html",
-];
-
 export function Composer({
   onCreated,
   endpoint = "/api/posts",
@@ -23,8 +18,9 @@ export function Composer({
   const [type, setType] = useState<PostType>("TEXT");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [codeLanguage, setCodeLanguage] = useState("typescript");
+  const [codeLanguage, setCodeLanguage] = useState("");
   const [codeContent, setCodeContent] = useState("");
+  const [wantsHelp, setWantsHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -64,7 +60,7 @@ export function Composer({
     try {
       const payload =
         type === "SNIPPET"
-          ? { type, title: title || undefined, body, codeLanguage, codeContent, imageUrl: imageUrl ?? undefined }
+          ? { type, title: title || undefined, body, codeLanguage: codeLanguage.trim(), codeContent, wantsHelp, imageUrl: imageUrl ?? undefined }
           : { type, title: title || undefined, body, imageUrl: imageUrl ?? undefined };
 
       const res = await api<{ ok: true; post: Post }>(endpoint, {
@@ -77,6 +73,8 @@ export function Composer({
       setTitle("");
       setBody("");
       setCodeContent("");
+      setCodeLanguage("");
+      setWantsHelp(false);
       setImageUrl(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server");
@@ -146,16 +144,15 @@ export function Composer({
       )}
       {type === "SNIPPET" && (
         <div className="mt-2 space-y-2">
-          <select
+          <input
             className="input-field !w-auto text-sm"
             value={codeLanguage}
             onChange={(e) => setCodeLanguage(e.target.value)}
+            placeholder="Language (e.g. typescript)"
             aria-label="Snippet language"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </select>
+            maxLength={30}
+            spellCheck={false}
+          />
           <textarea
             className="input-field min-h-32 resize-y font-mono text-sm"
             placeholder={"async function* walk(dir: string) {\n  // paste your code here\n}"}
@@ -163,6 +160,16 @@ export function Composer({
             onChange={(e) => setCodeContent(e.target.value)}
             spellCheck={false}
           />
+          {/* البوست ده طالب مساعدة على الكود؟ — بيعرض بادج Help Wanted في الفيد */}
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-mist-400">
+            <input
+              type="checkbox"
+              checked={wantsHelp}
+              onChange={(e) => setWantsHelp(e.target.checked)}
+              className="h-4 w-4 rounded border-ink-700 bg-ink-900 text-brand-500 focus:ring-brand-500"
+            />
+            <HelpCircle size={14} /> I need help with this code
+          </label>
         </div>
       )}
 
@@ -195,7 +202,7 @@ export function Composer({
         </div>
         <button
           onClick={submit}
-          disabled={submitting || !body.trim() || (type === "SNIPPET" && !codeContent.trim())}
+          disabled={submitting || !body.trim() || (type === "SNIPPET" && (!codeContent.trim() || !codeLanguage.trim()))}
           className="btn-primary !px-6 !py-2 text-sm disabled:opacity-50"
         >
           {submitting ? "Posting..." : "Post"}

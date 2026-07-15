@@ -18,6 +18,7 @@ const postSelect = (viewerId: string) =>
     body: true,
     codeLanguage: true,
     codeContent: true,
+    wantsHelp: true,
     imageUrl: true,
     createdAt: true,
     author: {
@@ -213,6 +214,7 @@ postsRouter.post(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        wantsHelp: input.type === "SNIPPET" ? input.wantsHelp : false,
         imageUrl: input.imageUrl ?? null,
       },
       select: postSelect(req.user!.userId),
@@ -588,6 +590,7 @@ postsRouter.patch(
         body: input.body,
         codeLanguage: input.type === "SNIPPET" ? input.codeLanguage : null,
         codeContent: input.type === "SNIPPET" ? input.codeContent : null,
+        wantsHelp: input.type === "SNIPPET" ? input.wantsHelp : false,
         imageUrl: input.imageUrl ?? null,
       },
       select: postSelect(req.user!.userId),

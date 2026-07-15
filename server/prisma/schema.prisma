@@ -151,6 +151,8 @@ model Post {
   // بيانات الـ code snippet (لو النوع SNIPPET)
   codeLanguage String?
   codeContent  String?
+  // snippet طالب مساعدة — بيعرض بادج "Help Wanted" زي السؤال (اختياري للـ SNIPPET)
+  wantsHelp    Boolean @default(false)
   imageUrl     String? // صورة مرفقة بالبوست (Cloudinary)
   pinned       Boolean @default(false) // مثبّت فوق فيد الكوميونتي/الصفحة (أدمن بس)
   // البوست ممكن يكون في مجتمع أو صفحة (أو عادي في الـ feed لو الاتنين null)

@@ -324,7 +324,7 @@ export function PostCard({
     try {
       const payload =
         currentPost.type === "SNIPPET"
-          ? { title: editTitle || undefined, body: editBody, codeLanguage: currentPost.codeLanguage, codeContent: editCode }
+          ? { title: editTitle || undefined, body: editBody, codeLanguage: currentPost.codeLanguage, codeContent: editCode, wantsHelp: currentPost.wantsHelp ?? false }
           : { title: editTitle || undefined, body: editBody };
       const res = await api<{ ok: true; post: Post }>(`/api/posts/${post.id}`, {
         method: "PATCH",
@@ -432,7 +432,7 @@ export function PostCard({
                 <Pin size={10} /> Pinned
               </span>
             )}
-            {p.type === "QUESTION" && (
+            {(p.type === "QUESTION" || (p.type === "SNIPPET" && p.wantsHelp)) && (
               <span className="shrink-0 whitespace-nowrap rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 font-semibold text-cyan-400">
                 Help Wanted
               </span>

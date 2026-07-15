@@ -69,6 +69,7 @@ export interface Post {
   body: string;
   codeLanguage: string | null;
   codeContent: string | null;
+  wantsHelp?: boolean; // snippet طالب مساعدة — بادج Help Wanted
   imageUrl?: string | null;
   createdAt: string;
   author: PostAuthor;
