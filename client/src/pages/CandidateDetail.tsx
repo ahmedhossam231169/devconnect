@@ -6,9 +6,10 @@ import { AppShell } from "../components/AppShell";
 import { MatchScoreBar, STAGES, STAGE_META, type Stage } from "./RecruiterDashboard";
 import {
   ArrowLeft, Clock, MapPin, Briefcase, Star as StarIcon, GitFork, FileText,
-  MessageCircle, XCircle, CheckCircle2, TrendingUp, StickyNote, Plus,
+  MessageCircle, XCircle, CheckCircle2, TrendingUp, StickyNote, Plus, Eye,
 } from "lucide-react";
 import { GitHubIcon } from "../components/AuthLayout";
+import { ResumeQuickView } from "../components/ResumeQuickView";
 
 // ---------------------------------------------------------------
 // Candidate Detail — صفحة 10 في الديزاين
@@ -78,6 +79,7 @@ export default function CandidateDetail() {
   const [startingChat, setStartingChat] = useState(false);
   const [pickJobOpen, setPickJobOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [resumePreview, setResumePreview] = useState(false); // Quick View للـ CV
 
   useEffect(() => {
     if (!username) return;
@@ -415,20 +417,33 @@ export default function CandidateDetail() {
                 <h2 className="flex items-center gap-2 text-sm font-bold"><FileText size={14} className="text-brand-400" /> Document Preview</h2>
                 {profile.resumeUrl ? (
                   <>
-                    <a
-                      href={profile.resumeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 flex items-center gap-2.5 rounded-xl border border-ink-700/60 bg-ink-900/60 px-3 py-2.5 hover:border-brand-500/40"
+                    <button
+                      onClick={() => setResumePreview(true)}
+                      className="mt-3 flex w-full items-center gap-2.5 rounded-xl border border-ink-700/60 bg-ink-900/60 px-3 py-2.5 text-left hover:border-brand-500/40"
                     >
                       <FileText size={17} className="shrink-0 text-mist-400" />
                       <span className="truncate text-sm font-semibold">resume_{user.username}.pdf</span>
-                    </a>
-                    <iframe
-                      src={profile.resumeUrl}
-                      title="Resume preview"
-                      className="mt-3 h-80 w-full rounded-xl border border-ink-700/60 bg-white"
-                    />
+                      <span className="ml-auto flex shrink-0 items-center gap-1 text-xs font-semibold text-brand-400">
+                        <Eye size={13} /> Quick View
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setResumePreview(true)}
+                      className="group relative mt-3 block w-full"
+                      aria-label="Open resume quick view"
+                    >
+                      <iframe
+                        src={profile.resumeUrl}
+                        title="Resume preview"
+                        tabIndex={-1}
+                        className="pointer-events-none h-80 w-full rounded-xl border border-ink-700/60 bg-white"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
+                        <span className="flex items-center gap-1.5 rounded-lg bg-ink-900/90 px-3 py-1.5 text-sm font-semibold text-mist-100">
+                          <Eye size={15} /> Quick View
+                        </span>
+                      </span>
+                    </button>
                   </>
                 ) : (
                   <p className="mt-3 text-sm text-mist-600">No resume uploaded by this candidate.</p>
@@ -508,6 +523,15 @@ export default function CandidateDetail() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Quick View للـ CV — overlay بيعرض الـ PDF من غير تحميل */}
+      {resumePreview && profile?.resumeUrl && (
+        <ResumeQuickView
+          url={profile.resumeUrl}
+          filename={`resume_${user?.username ?? "candidate"}.pdf`}
+          onClose={() => setResumePreview(false)}
+        />
       )}
     </AppShell>
   );

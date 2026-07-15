@@ -8,9 +8,10 @@ import { PostCard } from "../components/PostCard";
 import {
   Award, MapPin, Link2, Calendar, MessageCircle, Share2, Pencil,
   FileText, ExternalLink, Star, GitFork, Repeat2, Users, Layers,
-  GitCommitHorizontal, Clock,
+  GitCommitHorizontal, Clock, Eye,
 } from "lucide-react";
 import { RelationActions } from "../components/RelationActions";
+import { ResumeQuickView } from "../components/ResumeQuickView";
 
 // [SECURITY] نتأكد إن الرابط http(s) قبل ما نحطه في href
 function isSafeHttpUrl(url: string | null | undefined): boolean {
@@ -57,6 +58,7 @@ export default function UserProfile() {
   const [error, setError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [resumePreview, setResumePreview] = useState(false); // Quick View للـ CV
 
   const isMe = me?.username === username;
 
@@ -426,9 +428,14 @@ export default function UserProfile() {
                   <h2 className="text-lg font-bold">Portfolio Assets</h2>
                   <div className="mt-4 space-y-2.5">
                     {isSafeHttpUrl(profile.resumeUrl) ? (
-                      <a href={profile.resumeUrl!} target="_blank" rel="noreferrer" className="btn-primary w-full justify-center text-sm">
-                        <FileText size={15} /> Download Resume
-                      </a>
+                      <>
+                        <button onClick={() => setResumePreview(true)} className="btn-primary w-full justify-center text-sm">
+                          <Eye size={15} /> Quick View Resume
+                        </button>
+                        <a href={profile.resumeUrl!} target="_blank" rel="noreferrer" className="btn-ghost w-full justify-center text-sm">
+                          <FileText size={15} /> Download Resume
+                        </a>
+                      </>
                     ) : (
                       isMe && (
                         <Link to="/profile/edit" className="btn-ghost w-full justify-center text-sm">
@@ -498,6 +505,15 @@ export default function UserProfile() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Quick View للـ CV — overlay بيعرض الـ PDF من غير تحميل */}
+      {resumePreview && isSafeHttpUrl(profile?.resumeUrl) && (
+        <ResumeQuickView
+          url={profile!.resumeUrl!}
+          filename={`resume_${username}.pdf`}
+          onClose={() => setResumePreview(false)}
+        />
       )}
     </AppShell>
   );
