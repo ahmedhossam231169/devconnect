@@ -215,8 +215,12 @@ export default function TalentSearch() {
                   className="card !p-4 transition-colors hover:border-brand-500/50"
                 >
                   <div className="mb-2 flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-700 font-bold">
-                      {c.displayName?.[0]?.toUpperCase() ?? "?"}
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 font-bold">
+                      {c.avatarUrl ? (
+                        <img src={c.avatarUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        c.displayName?.[0]?.toUpperCase() ?? "?"
+                      )}
                     </div>
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{c.displayName}</p>
