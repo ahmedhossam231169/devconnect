@@ -1,10 +1,4 @@
 {
-  "build": {
-    "env": {
-      "VITE_CLOUDINARY_CLOUD_NAME": "cv5ef9ut",
-      "VITE_CLOUDINARY_UPLOAD_PRESET": "devconnect_uploads"
-    }
-  },
   "rewrites": [
     { "source": "/((?!robots.txt|sitemap.xml|og-image.png).*)", "destination": "/index.html" }
   ]
