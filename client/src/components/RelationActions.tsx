@@ -10,6 +10,8 @@ export function RelationActions({ username }: { username: string }) {
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
 
   useEffect(() => {
     api<{ ok: true } & RelationStatus>(`/api/friends/status/${username}`)
@@ -68,16 +70,17 @@ export function RelationActions({ username }: { username: string }) {
     alert(`@${username} has been blocked.`);
   }
 
-  async function reportUser() {
-    const reason = prompt("Why are you reporting this user?");
-    if (!reason?.trim()) return;
+  async function submitReport() {
+    const reason = reportReason.trim();
+    if (!reason) return; // الكومنت إلزامي
     setReporting(true);
     try {
       await api("/api/moderation/report", { method: "POST", body: JSON.stringify({ username, reason }) });
       alert("Report submitted. Our team will review it.");
+      setReportOpen(false);
+      setReportReason("");
     } finally {
       setReporting(false);
-      setMenuOpen(false);
     }
   }
 
@@ -135,7 +138,7 @@ export function RelationActions({ username }: { username: string }) {
         </button>
         {menuOpen && (
           <div className="absolute right-0 z-10 mt-1 w-36 rounded-lg border border-ink-700 bg-ink-800 py-1 text-sm shadow-xl">
-            <button onClick={reportUser} disabled={reporting} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900">
+            <button onClick={() => { setMenuOpen(false); setReportOpen(true); }} className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-ink-900">
               <Flag size={14} /> Report
             </button>
             <button onClick={blockUser} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-red-400 hover:bg-ink-900">
@@ -144,6 +147,33 @@ export function RelationActions({ username }: { username: string }) {
           </div>
         )}
       </div>
+
+      {/* مودال الريبورت — الكومنت إلزامي عشان الإدارة تعرف تراجع الحساب صح */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setReportOpen(false)}>
+          <div className="card w-full max-w-sm !p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mb-1 text-base font-bold">Report @{username}</h3>
+            <p className="mb-3 text-sm text-mist-400">Tell us what's wrong. This field is required.</p>
+            <textarea
+              className="input-field min-h-24 resize-y text-sm"
+              placeholder="Describe the issue..."
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              autoFocus
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button onClick={() => setReportOpen(false)} className="btn-ghost !py-1.5 text-sm">Cancel</button>
+              <button
+                onClick={submitReport}
+                disabled={reporting || !reportReason.trim()}
+                className="btn-primary !py-1.5 text-sm disabled:opacity-50"
+              >
+                {reporting ? "Submitting..." : "Submit report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
