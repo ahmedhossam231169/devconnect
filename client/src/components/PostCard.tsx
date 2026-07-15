@@ -102,6 +102,103 @@ function PostAuthorActions({ username }: { username: string }) {
   );
 }
 
+// كومنت واحد: بيعرض صورة صاحبه، ولو الكومنت بتاعك بيدّيك تعديل/حذف
+function CommentItem({
+  comment,
+  postId,
+  isMine,
+  onUpdated,
+  onDeleted,
+}: {
+  comment: Comment;
+  postId: string;
+  isMine: boolean;
+  onUpdated: (c: Comment) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.body);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (!draft.trim() || draft === comment.body) { setEditing(false); return; }
+    setBusy(true);
+    try {
+      const res = await api<{ ok: true; comment: Comment }>(
+        `/api/posts/${postId}/comments/${comment.id}`,
+        { method: "PATCH", body: JSON.stringify({ body: draft }) }
+      );
+      onUpdated(res.comment);
+      setEditing(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!confirm("Delete this comment?")) return;
+    setBusy(true);
+    try {
+      await api(`/api/posts/${postId}/comments/${comment.id}`, { method: "DELETE" });
+      onDeleted(comment.id);
+    } catch {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex gap-2.5">
+      <Link
+        to={`/u/${comment.author.username}`}
+        aria-label={`${comment.author.profile.displayName} profile`}
+        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-ink-700 text-xs font-bold hover:ring-2 hover:ring-brand-500"
+      >
+        {comment.author.profile.avatarUrl ? (
+          <img src={comment.author.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          comment.author.profile.displayName[0]?.toUpperCase()
+        )}
+      </Link>
+      <div className="min-w-0 flex-1 rounded-lg bg-ink-900 px-3 py-2">
+        <div className="flex items-center gap-2 text-sm">
+          <Link to={`/u/${comment.author.username}`} className="truncate font-semibold hover:underline">
+            {comment.author.profile.displayName}
+          </Link>
+          <span className="shrink-0 text-xs text-mist-600">· {timeAgo(comment.createdAt)}</span>
+          {isMine && !editing && (
+            <span className="ml-auto flex shrink-0 items-center gap-0.5">
+              <button onClick={() => { setDraft(comment.body); setEditing(true); }} className="rounded p-1 text-mist-400 hover:bg-ink-800 hover:text-mist-100" aria-label="Edit comment" title="Edit">
+                <Pencil size={13} />
+              </button>
+              <button onClick={remove} disabled={busy} className="rounded p-1 text-mist-400 hover:bg-ink-800 hover:text-red-400 disabled:opacity-50" aria-label="Delete comment" title="Delete">
+                <Trash2 size={13} />
+              </button>
+            </span>
+          )}
+        </div>
+        {editing ? (
+          <div className="mt-1.5 space-y-2">
+            <textarea
+              className="input-field min-h-16 resize-y !py-2 text-sm"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditing(false)} className="btn-ghost !py-1 text-xs">Cancel</button>
+              <button onClick={save} disabled={busy || !draft.trim()} className="btn-primary !py-1 text-xs disabled:opacity-50">
+                {busy ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-mist-100">{comment.body}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PostCard({
   post,
   onDeleted,
@@ -591,13 +688,17 @@ export function PostCard({
             <p className="text-sm text-mist-400">No comments yet. Start the thread.</p>
           )}
           {comments?.map((c) => (
-            <div key={c.id} className="rounded-lg bg-ink-900 px-3 py-2">
-              <p className="text-sm">
-                <Link to={`/u/${c.author.username}`} className="font-semibold hover:underline">{c.author.profile.displayName}</Link>{" "}
-                <span className="text-xs text-mist-600">· {timeAgo(c.createdAt)}</span>
-              </p>
-              <p className="mt-0.5 text-sm text-mist-100">{c.body}</p>
-            </div>
+            <CommentItem
+              key={c.id}
+              comment={c}
+              postId={post.id}
+              isMine={user?.username === c.author.username}
+              onUpdated={(uc) => setComments((cs) => (cs ?? []).map((x) => (x.id === uc.id ? uc : x)))}
+              onDeleted={(id) => {
+                setComments((cs) => (cs ?? []).filter((x) => x.id !== id));
+                setCommentCount((n) => Math.max(0, n - 1));
+              }}
+            />
           ))}
           <div className="flex gap-2">
             <input
