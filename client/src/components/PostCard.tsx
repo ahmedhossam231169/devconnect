@@ -304,49 +304,52 @@ export function PostCard({
             p.author.profile.displayName[0]?.toUpperCase()
           )}
         </Link>
-        <div className="min-w-0">
-          <Link to={`/u/${p.author.username}`} className="truncate font-semibold hover:underline">
+        <div className="min-w-0 flex-1">
+          <Link to={`/u/${p.author.username}`} className="block truncate font-semibold hover:underline">
             {p.author.profile.displayName}{" "}
             <span className="font-normal text-mist-600">@{p.author.username}</span>
           </Link>
-          <p className="text-xs text-mist-400">
-            {timeAgo(p.createdAt)}
-            {p.community && (
-              <>
-                {" · in "}
-                <Link to={`/communities/${p.community.slug}`} className="font-semibold text-brand-400 hover:underline">
-                  {p.community.name}
-                </Link>
-              </>
+          {/* سطر المعلومات: الوقت + المجتمع/الصفحة، والـ badges بتلف تحت لو الشاشة ضيّقة */}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-mist-400">
+            <span className="truncate">
+              {timeAgo(p.createdAt)}
+              {p.community && (
+                <>
+                  {" · in "}
+                  <Link to={`/communities/${p.community.slug}`} className="font-semibold text-brand-400 hover:underline">
+                    {p.community.name}
+                  </Link>
+                </>
+              )}
+              {p.page && (
+                <>
+                  {" · from "}
+                  <Link to={`/pages/${p.page.slug}`} className="font-semibold text-brand-400 hover:underline">
+                    {p.page.name}
+                  </Link>
+                </>
+              )}
+            </span>
+            {pinned && (
+              <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-semibold text-amber-400">
+                <Pin size={10} /> Pinned
+              </span>
             )}
-            {p.page && (
-              <>
-                {" · from "}
-                <Link to={`/pages/${p.page.slug}`} className="font-semibold text-brand-400 hover:underline">
-                  {p.page.name}
-                </Link>
-              </>
+            {p.type === "QUESTION" && (
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 font-semibold text-cyan-400">
+                Help Wanted
+              </span>
             )}
-          </p>
+            {p.type === "PROJECT" && (
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-0.5 font-semibold text-brand-400">
+                Project
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           {!isMine && user && <PostAuthorActions username={p.author.username} />}
-          {pinned && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
-              <Pin size={11} /> Pinned
-            </span>
-          )}
-          {p.type === "QUESTION" && (
-            <span className="shrink-0 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-400">
-              Help Wanted
-            </span>
-          )}
-          {p.type === "PROJECT" && (
-            <span className="shrink-0 rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-0.5 text-xs font-semibold text-brand-400">
-              Project
-            </span>
-          )}
           {(isMine || canModerate) && (
             <div className="relative">
               <button onClick={() => setMenuOpen((o) => !o)} className="flex items-center rounded px-2 py-1 text-mist-400 hover:bg-ink-900" aria-label="Post options"><MoreHorizontal size={18} /></button>
