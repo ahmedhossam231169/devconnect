@@ -1,12 +1,106 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { timeAgo, type Post, type Comment } from "../lib/types";
+import { timeAgo, type Post, type Comment, type FriendState, type RelationStatus } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
 import { Markdown } from "./Markdown";
 import { FriendPicker } from "./FriendPicker";
-import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry, Repeat2, Share2, LinkIcon, Send, Pin } from "lucide-react";
+import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry, Repeat2, Share2, LinkIcon, Send, Pin, UserPlus, UserCheck, Clock } from "lucide-react";
+
+// زرارين Follow / Add friend مصغّرين لصاحب البوست في هيدر الكارت.
+// بنجيب حالة العلاقة أول ما الكارت يظهر، وبنخفي الأزرار لحد ما توصل عشان مايبانش وميض.
+function PostAuthorActions({ username }: { username: string }) {
+  const [state, setState] = useState<FriendState>("none");
+  const [following, setFollowing] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    api<{ ok: true } & RelationStatus>(`/api/friends/status/${username}`)
+      .then((r) => {
+        if (!alive) return;
+        setState(r.friendState);
+        setFollowing(r.following);
+        setLoaded(true);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [username]);
+
+  async function friendAction() {
+    setBusy(true);
+    try {
+      if (state === "none") {
+        await api("/api/friends/request", { method: "POST", body: JSON.stringify({ username }) });
+        setState("request_sent");
+      } else if (state === "request_sent" || state === "friends") {
+        await api(`/api/friends/${username}`, { method: "DELETE" });
+        setState("none");
+      } else if (state === "request_received") {
+        await api("/api/friends/respond", { method: "POST", body: JSON.stringify({ username, accept: true }) });
+        setState("friends");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggleFollow() {
+    setBusy(true);
+    try {
+      const r = await api<{ ok: true; following: boolean }>(`/api/friends/follow/${username}`, { method: "POST" });
+      setFollowing(r.following);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!loaded) return null;
+
+  const friendIcon =
+    state === "friends" ? <UserCheck size={13} />
+    : state === "request_sent" ? <Clock size={13} />
+    : state === "request_received" ? <UserCheck size={13} />
+    : <UserPlus size={13} />;
+  const friendLabel =
+    state === "friends" ? "Friends"
+    : state === "request_sent" ? "Requested"
+    : state === "request_received" ? "Accept"
+    : "Add friend";
+  const friendSolid = state === "none" || state === "request_received";
+
+  return (
+    <>
+      {/* على الموبايل بنعرض أيقونة بس عشان مايحصلش overflow في الهيدر؛ النص يبان من sm وفوق */}
+      <button
+        onClick={friendAction}
+        disabled={busy}
+        aria-label={friendLabel}
+        title={friendLabel}
+        className={
+          "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition-colors active:scale-95 disabled:opacity-50 sm:px-2.5 " +
+          (friendSolid ? "bg-brand-500 text-white hover:bg-brand-600" : "border border-ink-700 text-mist-100 hover:bg-ink-900")
+        }
+      >
+        {friendIcon} <span className="hidden sm:inline">{friendLabel}</span>
+      </button>
+      <button
+        onClick={toggleFollow}
+        disabled={busy}
+        className={
+          "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors active:scale-95 disabled:opacity-50 " +
+          (following ? "border border-brand-500/40 bg-brand-500/10 text-brand-400" : "border border-ink-700 text-mist-100 hover:bg-ink-900")
+        }
+      >
+        {following ? "Following" : "Follow"}
+      </button>
+    </>
+  );
+}
 
 export function PostCard({
   post,
@@ -39,11 +133,11 @@ export function PostCard({
   }
 
   const REACTIONS = [
-    { type: "LIKE", label: "Like", Icon: ThumbsUp, color: "text-blue-400" },
-    { type: "LOVE", label: "Love", Icon: Heart, color: "text-red-400" },
-    { type: "SUPPORT", label: "Support", Icon: HandHeart, color: "text-emerald-400" },
-    { type: "CELEBRATE", label: "Celebrate", Icon: PartyPopper, color: "text-amber-400" },
-    { type: "ANGRY", label: "Angry", Icon: Angry, color: "text-orange-500" },
+    { type: "LIKE", label: "Like", Icon: ThumbsUp, color: "text-blue-400", bg: "bg-blue-500/10" },
+    { type: "LOVE", label: "Love", Icon: Heart, color: "text-red-400", bg: "bg-red-500/10" },
+    { type: "SUPPORT", label: "Support", Icon: HandHeart, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+    { type: "CELEBRATE", label: "Celebrate", Icon: PartyPopper, color: "text-amber-400", bg: "bg-amber-500/10" },
+    { type: "ANGRY", label: "Angry", Icon: Angry, color: "text-orange-500", bg: "bg-orange-500/10" },
   ] as const;
 
   async function react(type: string) {
@@ -236,7 +330,8 @@ export function PostCard({
           </p>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          {!isMine && user && <PostAuthorActions username={p.author.username} />}
           {pinned && (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
               <Pin size={11} /> Pinned
@@ -306,7 +401,7 @@ export function PostCard({
       )}
 
       {/* Actions */}
-      <div className="mt-4 flex items-center gap-5 text-sm text-mist-400">
+      <div className="mt-4 flex items-center gap-3 sm:gap-5 text-sm text-mist-400">
         <div className="relative">
           {pickerOpen && (
             <div className="absolute bottom-full left-0 z-10 mb-1 flex gap-1 rounded-full border border-ink-700 bg-ink-800 px-2 py-1.5 shadow-xl">
@@ -331,10 +426,14 @@ export function PostCard({
                 onMouseEnter={() => setPickerOpen(true)}
                 onMouseLeave={() => setTimeout(() => setPickerOpen(false), 1500)}
                 onContextMenu={(e) => { e.preventDefault(); setPickerOpen((o) => !o); }}
-                className={"flex items-center gap-1.5 transition-colors " + (active ? active.color : "hover:text-red-400")}
+                className={
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium transition-all active:scale-90 " +
+                  (active ? active.color + " " + active.bg : "hover:bg-ink-900 hover:text-red-400")
+                }
                 aria-pressed={liked}
               >
-                <Icon size={16} className={myReaction ? "fill-current" : ""} />
+                <Icon size={16} />
+                <span>{active ? active.label : "Like"}</span>
               </button>
             );
           })()}
@@ -399,7 +498,7 @@ export function PostCard({
             className="flex items-center gap-1.5 hover:text-mist-100"
             title="Share"
           >
-            <Share2 size={16} /> {shareCopied ? "Copied!" : "Share"}
+            <Share2 size={16} /> <span className={shareCopied ? "" : "hidden sm:inline"}>{shareCopied ? "Copied!" : "Share"}</span>
           </button>
         </div>
       </div>
