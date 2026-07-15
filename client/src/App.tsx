@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./lib/auth";
 import { ThemeProvider } from "./lib/theme";
+import { LanguageProvider } from "./lib/language";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RecruiterRoute } from "./components/RecruiterRoute";
 import Landing from "./pages/Landing";
@@ -29,6 +30,7 @@ import Jobs from "./pages/Jobs";
 
 export default function App() {
   return (
+    <LanguageProvider>
     <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
@@ -62,5 +64,6 @@ export default function App() {
       </BrowserRouter>
     </AuthProvider>
     </ThemeProvider>
+    </LanguageProvider>
   );
 }

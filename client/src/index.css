@@ -38,6 +38,23 @@
     max-width: 100%;
   }
 
+  /* ===== RTL — بيقلب الـ sidebar الثابت ومساحة المحتوى بجنب الاتجاه بتاع اللغة ===== */
+  [dir="rtl"] aside.fixed.left-0 {
+    left: auto;
+    right: 0;
+  }
+  [dir="rtl"] .md\:pl-60 {
+    padding-left: 0;
+  }
+  @media (min-width: 768px) {
+    [dir="rtl"] .md\:pl-60 {
+      padding-right: 15rem;
+    }
+  }
+  [dir="rtl"] .-translate-x-full {
+    transform: translateX(100%);
+  }
+
   body {
     @apply bg-ink-950 text-mist-100 font-sans antialiased;
   }

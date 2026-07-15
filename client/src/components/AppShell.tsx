@@ -1,11 +1,13 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Activity, Home, User, Layers, Users, MessageSquare, Contact, Flag,
-  Search, Bookmark, Settings, LogOut, Menu, X, Sun, Moon, LayoutGrid, Briefcase,
+  Search, Bookmark, Settings, LogOut, Menu, X, Sun, Moon, LayoutGrid, Briefcase, Languages,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { useTheme } from "../lib/theme";
+import { useLanguage } from "../lib/language";
 import { NotificationBell } from "./NotificationBell";
 import { SearchBar } from "./SearchBar";
 
@@ -30,30 +32,32 @@ export function AppShell({
 }) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
+  const { lang, toggle: toggleLang } = useLanguage();
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isRecruiter = user?.role === "RECRUITER";
 
   const devLinks: NavItem[] = [
-    { to: "/feed", label: "Feed", icon: Home },
-    { to: `/u/${user?.username}`, label: "Profile", icon: User },
-    { to: "/projects", label: "Projects", icon: Layers },
-    { to: "/communities", label: "Communities", icon: Users },
-    { to: "/messages", label: "Messages", icon: MessageSquare },
-    { to: "/friends", label: "Friends", icon: Contact },
-    { to: "/pages", label: "Pages", icon: Flag },
+    { to: "/feed", label: t("nav.feed"), icon: Home },
+    { to: `/u/${user?.username}`, label: t("nav.profile"), icon: User },
+    { to: "/projects", label: t("nav.projects"), icon: Layers },
+    { to: "/communities", label: t("nav.communities"), icon: Users },
+    { to: "/messages", label: t("nav.messages"), icon: MessageSquare },
+    { to: "/friends", label: t("nav.friends"), icon: Contact },
+    { to: "/pages", label: t("nav.pages"), icon: Flag },
   ];
 
   const recruiterLinks: NavItem[] = [
-    { to: "/talent/dashboard", label: "Dashboard", icon: LayoutGrid },
-    { to: "/talent", label: "Talent Search", icon: Search },
-    { to: "/jobs", label: "Jobs", icon: Briefcase },
-    { to: "/shortlist", label: "Shortlist", icon: Bookmark },
-    { to: "/feed", label: "Feed", icon: Home },
-    { to: "/communities", label: "Communities", icon: Users },
-    { to: "/messages", label: "Messages", icon: MessageSquare },
-    { to: "/friends", label: "Friends", icon: Contact },
-    { to: "/pages", label: "Pages", icon: Flag },
+    { to: "/talent/dashboard", label: t("nav.dashboard"), icon: LayoutGrid },
+    { to: "/talent", label: t("nav.talentSearch"), icon: Search },
+    { to: "/jobs", label: t("nav.jobs"), icon: Briefcase },
+    { to: "/shortlist", label: t("nav.shortlist"), icon: Bookmark },
+    { to: "/feed", label: t("nav.feed"), icon: Home },
+    { to: "/communities", label: t("nav.communities"), icon: Users },
+    { to: "/messages", label: t("nav.messages"), icon: MessageSquare },
+    { to: "/friends", label: t("nav.friends"), icon: Contact },
+    { to: "/pages", label: t("nav.pages"), icon: Flag },
   ];
 
   const links = isRecruiter ? recruiterLinks : devLinks;
@@ -82,13 +86,13 @@ export function AppShell({
   const sidebarFooter = (onClick?: () => void) => (
     <div className="space-y-1 border-t border-ink-700/60 p-3">
       <Link to="/profile/edit" onClick={onClick} className={"side-link " + (isActive("/profile/edit") ? "side-link-active" : "")}>
-        <Settings size={18} /> Settings
+        <Settings size={18} /> {t("nav.settings")}
       </Link>
       <button
         onClick={() => { onClick?.(); logout(); }}
         className="side-link w-full text-red-400 hover:text-red-400"
       >
-        <LogOut size={18} /> Logout
+        <LogOut size={18} /> {t("nav.logout")}
       </button>
     </div>
   );
@@ -120,7 +124,7 @@ export function AppShell({
             <button
               onClick={() => setDrawerOpen(true)}
               className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 md:hidden"
-              aria-label="Open menu"
+              aria-label={t("nav.openMenu")}
             >
               <Menu size={20} />
             </button>
@@ -131,19 +135,28 @@ export function AppShell({
 
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
+              onClick={toggleLang}
+              className="rounded-lg px-2 py-2 text-xs font-semibold text-mist-400 hover:bg-ink-800 hover:text-mist-100"
+              aria-label={t("language.switch")}
+              title={t("language.switch")}
+            >
+              <Languages size={18} className="inline sm:hidden" />
+              <span className="hidden sm:inline">{lang === "en" ? "عربي" : "English"}</span>
+            </button>
+            <button
               onClick={toggle}
               className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100"
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
+              aria-label={theme === "dark" ? t("theme.light") : t("theme.dark")}
+              title={theme === "dark" ? t("theme.light") : t("theme.dark")}
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <NotificationBell />
             <Link
               to={`/u/${user?.username}`}
-              aria-label="My profile"
+              aria-label={t("nav.myProfile")}
               className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-brand-500 font-bold text-white transition-shadow hover:ring-2 hover:ring-brand-400"
-              title="My profile"
+              title={t("nav.myProfile")}
             >
               {user?.profile.avatarUrl ? (
                 <img src={user.profile.avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -184,7 +197,7 @@ export function AppShell({
           <button
             onClick={() => setDrawerOpen(false)}
             className="rounded-lg p-1.5 text-mist-400 hover:bg-ink-800"
-            aria-label="Close menu"
+            aria-label={t("nav.closeMenu")}
           >
             <X size={20} />
           </button>
@@ -218,7 +231,7 @@ export function AppShell({
       <div className="md:pl-60">
         <main className={`mx-auto w-full ${maxW} px-4 py-6 sm:px-6`}>{children}</main>
         <footer className="border-t border-ink-700/40 py-5 text-center text-xs text-mist-600">
-          © {new Date().getFullYear()} DevConnect. Built for developers by developers.
+          © {new Date().getFullYear()} DevConnect. {t("footer")}
         </footer>
       </div>
     </div>
