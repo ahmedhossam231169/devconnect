@@ -15,6 +15,8 @@ const AVAILABILITY_LABELS: Record<Availability, string> = {
 };
 
 export default function EditProfile() {
+  const { user } = useAuth();
+  const isRecruiter = user?.role === "RECRUITER";
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,6 +89,7 @@ export default function EditProfile() {
           location: profile.location ?? undefined,
           yearsExperience: profile.yearsExperience ?? undefined,
           specialty: profile.specialty ?? undefined,
+          companyName: profile.companyName ?? undefined,
           availability: profile.availability,
           websiteUrl: profile.websiteUrl ?? "",
           githubUrl: profile.githubUrl ?? "",
@@ -190,6 +193,18 @@ export default function EditProfile() {
                   />
                 </div>
               </div>
+
+              {isRecruiter && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">Company name</label>
+                  <input
+                    className="input-field"
+                    placeholder="e.g. Acme Inc."
+                    value={profile.companyName ?? ""}
+                    onChange={(e) => update("companyName", e.target.value)}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -406,7 +421,11 @@ export default function EditProfile() {
             )}
 
             <div className="flex items-center gap-3">
-              <button onClick={save} disabled={saving} className="btn-primary disabled:opacity-60">
+              <button
+                onClick={save}
+                disabled={saving || (isRecruiter && !profile.companyName?.trim())}
+                className="btn-primary disabled:opacity-60"
+              >
                 {saving ? "Saving..." : "Save changes"}
               </button>
               {saved && <span className="text-sm text-emerald-400">✓ Saved</span>}

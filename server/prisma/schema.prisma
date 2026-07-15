@@ -88,6 +88,7 @@ model Profile {
   location        String?
   yearsExperience Int           @default(0)
   specialty       String? // "Frontend", "Backend", "DevOps", "AI/ML"...
+  companyName     String? // شركة الـ recruiter اللي شغال فيها
   availability    Availability  @default(NOT_LOOKING)
   websiteUrl      String?
   githubUrl       String?

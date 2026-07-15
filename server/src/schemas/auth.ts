@@ -22,6 +22,8 @@ export const registerSchema = z
       .max(60, "That doesn't look right"),
     // الـ CV إلزامي لل Developer بس — لينك PDF من Cloudinary بعد رفعه في الفورم
     resumeUrl: z.string().url("Upload your resume first").optional(),
+    // اسم الشركة إلزامي لل Recruiter بس
+    companyName: z.string().trim().min(2, "Company name is too short").max(100).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.role === "DEVELOPER") {
@@ -30,6 +32,9 @@ export const registerSchema = z
       } else if (!/\.pdf($|\?)/i.test(data.resumeUrl)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["resumeUrl"], message: "Resume must be a PDF file" });
       }
+    }
+    if (data.role === "RECRUITER" && !data.companyName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["companyName"], message: "Company name is required" });
     }
   });
 

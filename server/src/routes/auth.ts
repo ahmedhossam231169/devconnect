@@ -150,6 +150,7 @@ authRouter.post(
             displayName: input.displayName,
             yearsExperience: input.yearsExperience,
             resumeUrl: input.resumeUrl ?? null,
+            companyName: input.companyName ?? null,
           },
         },
       },

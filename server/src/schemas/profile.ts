@@ -24,6 +24,7 @@ export const updateProfileSchema = z.object({
   location: z.string().max(100).optional(),
   yearsExperience: z.coerce.number().int().min(0).max(60).optional(),
   specialty: z.enum(SPECIALTIES).optional(),
+  companyName: z.string().trim().min(2, "Company name is too short").max(100).optional(),
   availability: z.enum(["OPEN_TO_WORK", "NOT_LOOKING", "FREELANCE_ONLY"]).optional(),
   // [SECURITY BUG-01] موافقة الظهور للـ recruiters في talent search
   discoverable: z.boolean().optional(),
