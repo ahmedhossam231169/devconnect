@@ -441,6 +441,66 @@ postsRouter.post(
   })
 );
 
+// نفس شكل الكومنت اللي بيرجع في كل الـ endpoints عشان الاتساق
+const commentSelect = {
+  id: true,
+  body: true,
+  createdAt: true,
+  author: {
+    select: {
+      username: true,
+      profile: { select: { displayName: true, avatarUrl: true } },
+    },
+  },
+} as const;
+
+// ---------------------------------------------------------------
+// PATCH /api/posts/:id/comments/:commentId — تعديل كومنت (صاحبه بس)
+// ---------------------------------------------------------------
+postsRouter.patch(
+  "/:id/comments/:commentId",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const input = createCommentSchema.parse(req.body);
+    const commentId = req.params.commentId!;
+    const existing = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { authorId: true, postId: true },
+    });
+    if (!existing || existing.postId !== req.params.id!) throw Errors.notFound("Comment");
+    if (existing.authorId !== req.user!.userId) {
+      throw Errors.forbidden("You can only edit your own comments");
+    }
+    const comment = await prisma.comment.update({
+      where: { id: commentId },
+      data: { body: input.body },
+      select: commentSelect,
+    });
+    res.json({ ok: true, comment });
+  })
+);
+
+// ---------------------------------------------------------------
+// DELETE /api/posts/:id/comments/:commentId — حذف كومنت (صاحبه بس)
+// ---------------------------------------------------------------
+postsRouter.delete(
+  "/:id/comments/:commentId",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const commentId = req.params.commentId!;
+    const existing = await prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { authorId: true, postId: true },
+    });
+    if (!existing || existing.postId !== req.params.id!) throw Errors.notFound("Comment");
+    if (existing.authorId !== req.user!.userId) {
+      throw Errors.forbidden("You can only delete your own comments");
+    }
+    await prisma.comment.delete({ where: { id: commentId } });
+    res.json({ ok: true });
+  })
+);
+
 // ---------------------------------------------------------------
 // GET /api/posts/user/:username — بوستات مستخدم معيّن + الـ reposts بتاعته
 // (لصفحة البروفايل العامة) — نفس شكل FeedItem بتاع الفيد الرئيسي
