@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo, type Post, type Comment, type FriendState, type RelationStatus } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
 import { Markdown } from "./Markdown";
 import { FriendPicker } from "./FriendPicker";
-import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry, Repeat2, Share2, LinkIcon, Send, Pin, UserPlus, UserCheck, Clock, Languages } from "lucide-react";
-
-// حروف عربية: بنستخدمها نحدد اللغة الهدف تلقائيًا (عربي متضمن → ترجم لإنجليزي، وغير كده العكس)
-const ARABIC_RE = /[؀-ۿ]/;
+import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, ThumbsUp, HandHeart, PartyPopper, Angry, Repeat2, Share2, LinkIcon, Send, Pin, UserPlus, UserCheck, Clock } from "lucide-react";
 
 // زرارين Follow / Add friend مصغّرين لصاحب البوست في هيدر الكارت.
 // بنجيب حالة العلاقة أول ما الكارت يظهر، وبنخفي الأزرار لحد ما توصل عشان مايبانش وميض.
@@ -215,7 +211,6 @@ export function PostCard({
   onPinToggled?: (id: string, pinned: boolean) => void;
 }) {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const isMine = user?.username === post.author.username;
 
   // اللايك optimistic: بنحدث الـ UI فورًا وبنرجّعه لو الطلب فشل
@@ -366,27 +361,6 @@ export function PostCard({
     }
   }
 
-  // ترجمة نص البوست (عربي <-> إنجليزي)
-  const [translated, setTranslated] = useState<string | null>(null);
-  const [translating, setTranslating] = useState(false);
-
-  async function translatePost() {
-    if (translated) { setTranslated(null); return; }
-    setTranslating(true);
-    try {
-      const target = ARABIC_RE.test(p.body) ? "en" : "ar";
-      const res = await api<{ ok: true; translated: string }>("/api/translate", {
-        method: "POST",
-        body: JSON.stringify({ text: p.body, target }),
-      });
-      setTranslated(res.translated);
-    } catch {
-      alert("Couldn't translate this post.");
-    } finally {
-      setTranslating(false);
-    }
-  }
-
   async function openComments() {
     setShowComments((s) => !s);
     if (comments === null) {
@@ -513,19 +487,6 @@ export function PostCard({
         <>
           {p.title && <h2 className="mb-1 text-lg font-bold">{p.title}</h2>}
           <div className="text-mist-100"><Markdown>{p.body}</Markdown></div>
-          <button
-            onClick={translatePost}
-            disabled={translating}
-            className="mt-1 flex items-center gap-1 text-xs font-semibold text-brand-400 hover:underline disabled:opacity-50"
-          >
-            <Languages size={12} />
-            {translating ? t("post.translating") : translated ? t("post.showOriginal") : t("post.translate")}
-          </button>
-          {translated && (
-            <div className="mt-1 rounded-lg border border-ink-700 bg-ink-900 p-2.5 text-sm text-mist-100">
-              {translated}
-            </div>
-          )}
           {p.imageUrl && (
             <a href={p.imageUrl} target="_blank" rel="noreferrer" className="mt-3 block">
               <img src={p.imageUrl} alt="" loading="lazy" className="max-h-[420px] w-full rounded-lg border border-ink-700 object-cover" />
