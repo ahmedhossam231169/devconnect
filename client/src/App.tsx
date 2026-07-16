@@ -19,13 +19,12 @@ import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
 import UserProfile from "./pages/UserProfile";
 import Friends from "./pages/Friends";
-import Pages from "./pages/Pages";
-import PageDetail from "./pages/PageDetail";
 import Onboarding from "./pages/Onboarding";
 import Shortlist from "./pages/Shortlist";
 import Projects from "./pages/Projects";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import Jobs from "./pages/Jobs";
+import SearchResults from "./pages/SearchResults";
 
 export default function App() {
   return (
@@ -41,6 +40,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
+          <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
           <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
@@ -48,8 +48,6 @@ export default function App() {
           <Route path="/communities/:slug" element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>} />
           <Route path="/u/:username" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
-          <Route path="/pages" element={<ProtectedRoute><Pages /></ProtectedRoute>} />
-          <Route path="/pages/:slug" element={<ProtectedRoute><PageDetail /></ProtectedRoute>} />
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/shortlist" element={<RecruiterRoute><Shortlist /></RecruiterRoute>} />

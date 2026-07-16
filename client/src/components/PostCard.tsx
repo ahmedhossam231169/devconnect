@@ -422,7 +422,7 @@ export function PostCard({
             {p.author.profile.displayName}{" "}
             <span className="font-normal text-mist-600">@{p.author.username}</span>
           </Link>
-          {/* سطر المعلومات: الوقت + المجتمع/الصفحة، والـ badges بتلف تحت لو الشاشة ضيّقة */}
+          {/* سطر المعلومات: الوقت + المجتمع، والـ badges بتلف تحت لو الشاشة ضيّقة */}
           <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-mist-400">
             <span className="truncate">
               {timeAgo(p.createdAt)}
@@ -431,14 +431,6 @@ export function PostCard({
                   {" · in "}
                   <Link to={`/communities/${p.community.slug}`} className="font-semibold text-brand-400 hover:underline">
                     {p.community.name}
-                  </Link>
-                </>
-              )}
-              {p.page && (
-                <>
-                  {" · from "}
-                  <Link to={`/pages/${p.page.slug}`} className="font-semibold text-brand-400 hover:underline">
-                    {p.page.name}
                   </Link>
                 </>
               )}

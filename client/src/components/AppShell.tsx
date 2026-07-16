@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  Activity, Home, User, Layers, Users, MessageSquare, Contact, Flag,
+  Activity, Home, User, Layers, Users, MessageSquare, Contact,
   Search, Bookmark, Settings, LogOut, Menu, X, Sun, Moon, LayoutGrid, Briefcase,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
@@ -41,7 +41,6 @@ export function AppShell({
     { to: "/communities", label: "Communities", icon: Users },
     { to: "/messages", label: "Messages", icon: MessageSquare },
     { to: "/friends", label: "Friends", icon: Contact },
-    { to: "/pages", label: "Pages", icon: Flag },
   ];
 
   const recruiterLinks: NavItem[] = [
@@ -53,7 +52,6 @@ export function AppShell({
     { to: "/communities", label: "Communities", icon: Users },
     { to: "/messages", label: "Messages", icon: MessageSquare },
     { to: "/friends", label: "Friends", icon: Contact },
-    { to: "/pages", label: "Pages", icon: Flag },
   ];
 
   const links = isRecruiter ? recruiterLinks : devLinks;
@@ -130,6 +128,15 @@ export function AppShell({
           <SearchBar />
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* زرار البحث للموبايل/التابلت — الـ SearchBar الكامل بيظهر lg فأكبر بس */}
+            <Link
+              to="/search"
+              className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100 lg:hidden"
+              aria-label="Search"
+              title="Search"
+            >
+              <Search size={18} />
+            </Link>
             <button
               onClick={toggle}
               className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100"

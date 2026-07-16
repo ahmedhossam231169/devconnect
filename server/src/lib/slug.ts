@@ -9,7 +9,7 @@ export function slugify(name: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-// بيضيف رقم لو الـ slug متكرر — بيشتغل مع أي موديل فيه حقل slug (Community, Page)
+// بيضيف رقم لو الـ slug متكرر — بيشتغل مع أي موديل فيه حقل slug (Community)
 export async function uniqueSlug(
   base: string,
   exists: (slug: string) => Promise<boolean>
@@ -24,6 +24,3 @@ export async function uniqueSlug(
 
 export const communitySlugExists = (slug: string) =>
   prisma.community.findFirst({ where: { slug }, select: { id: true } }).then(Boolean);
-
-export const pageSlugExists = (slug: string) =>
-  prisma.page.findUnique({ where: { slug }, select: { id: true } }).then(Boolean);

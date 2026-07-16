@@ -245,8 +245,8 @@ export default function UserProfile() {
           </div>
 
           {/* ===== المحتوى: عمودين ===== */}
-          <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-6">
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="min-w-0 space-y-6">
               {/* About Me */}
               {profile.bio && (
                 <section className="card">
