@@ -74,9 +74,8 @@ export interface Post {
   createdAt: string;
   author: PostAuthor;
   pinned?: boolean; // مثبّت فوق فيد الكوميونتي/الصفحة
-  // مصدر البوست لو جاي من مجتمع أو صفحة (بيظهر كبادج في الفيد)
+  // مصدر البوست لو جاي من مجتمع (بيظهر كبادج في الفيد)
   community?: { name: string; slug: string } | null;
-  page?: { name: string; slug: string } | null;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -183,27 +182,6 @@ export type FriendState = "none" | "friends" | "request_sent" | "request_receive
 export interface RelationStatus {
   friendState: FriendState;
   following: boolean;
-}
-
-// ---------- Group 3: Pages ----------
-
-export const PAGE_CATEGORIES = ["Company", "Project", "Open Source", "Community", "Product"] as const;
-export type PageCategory = (typeof PAGE_CATEGORIES)[number];
-
-export interface PageListItem {
-  id: string;
-  name: string;
-  slug: string;
-  bio: string | null;
-  category: string;
-  avatarUrl: string | null;
-  followerCount: number;
-  followedByMe: boolean;
-}
-
-export interface PageDetail extends PageListItem {
-  createdAt: string;
-  isAdmin: boolean;
 }
 
 // ---------- Group 4: GitHub projects, Reputation, Shortlist ----------

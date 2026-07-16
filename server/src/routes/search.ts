@@ -48,11 +48,10 @@ searchRouter.get(
           profile: { select: { displayName: true, avatarUrl: true, headline: true, specialty: true } },
         },
       }),
-      // البوستات العامة بس (مش بوستات المجتمعات/الصفحات الخاصة)
+      // البوستات العامة بس (مش بوستات المجتمعات الخاصة)
       prisma.post.findMany({
         where: {
           communityId: null,
-          pageId: null,
           OR: [
             { title: { contains: q, mode: "insensitive" } },
             { body: { contains: q, mode: "insensitive" } },
