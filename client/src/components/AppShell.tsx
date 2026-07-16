@@ -130,6 +130,15 @@ export function AppShell({
           <SearchBar />
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* زرار البحث للموبايل/التابلت — الـ SearchBar الكامل بيظهر lg فأكبر بس */}
+            <Link
+              to="/search"
+              className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100 lg:hidden"
+              aria-label="Search"
+              title="Search"
+            >
+              <Search size={18} />
+            </Link>
             <button
               onClick={toggle}
               className="rounded-lg p-2 text-mist-400 hover:bg-ink-800 hover:text-mist-100"
