@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import { getSocket } from "./socket";
 import type { FriendState, RelationStatus } from "./types";
 
 // كاش مشترك لحالة الصداقة/المتابعة لكل username — بيتشارك بين كل الأماكن
@@ -31,10 +32,26 @@ function fetchStatus(username: string) {
   return p;
 }
 
+// لما حد يبعتلي طلب صداقة أو يقبل طلبي أو يتابعني، السيرفر بيبعت "notification:new"
+// عن طريق الـ socket — بنستخدمها نحدّث الكاش لحظيًا من غير ما المستخدم يعمل reload
+let socketBound = false;
+function ensureSocketSync() {
+  if (socketBound) return;
+  socketBound = true;
+  getSocket().on("notification:new", (n: { type: string; link?: string | null }) => {
+    if (n.type !== "FRIEND_REQUEST" && n.type !== "FRIEND_ACCEPT" && n.type !== "NEW_FOLLOWER") return;
+    const username = n.link?.startsWith("/u/") ? n.link.slice(3) : null;
+    if (!username) return;
+    cache.delete(username);
+    fetchStatus(username);
+  });
+}
+
 export function useFriendStatus(username: string) {
   const [, bump] = useState(0);
 
   useEffect(() => {
+    ensureSocketSync();
     const set = listeners.get(username) ?? new Set<() => void>();
     const listener = () => bump((n) => n + 1);
     set.add(listener);
