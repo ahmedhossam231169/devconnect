@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { TrendingUp, Zap, Flame, Terminal } from "lucide-react";
 import { api } from "../lib/api";
+import { useFriendStatus } from "../lib/friendStatus";
 
 // ---------------------------------------------------------------
 // ويدجتات الفيد — كل الداتا من /api/feed/sidebar (طلب واحد)
@@ -53,30 +54,34 @@ export function ProfileStatsWidget({ stats }: { stats: SidebarData["myStats"] | 
   );
 }
 
-// ---- زرار Follow صغير (Rising Stars) ----
+// ---- زرار Follow صغير (Rising Stars) — بيستخدم نفس الكاش المشترك
+// عشان يتزامن فورًا مع أي مكان تاني بيعرض نفس اليوزر ده (فيد، بروفايل) ----
 function FollowButton({ username }: { username: string }) {
-  const [state, setState] = useState<"idle" | "busy" | "done">("idle");
+  const { following, loaded, setFollowing } = useFriendStatus(username);
+  const [busy, setBusy] = useState(false);
+
   async function follow() {
-    setState("busy");
+    setBusy(true);
     try {
-      await api(`/api/friends/follow/${username}`, { method: "POST" });
-      setState("done");
-    } catch {
-      setState("idle");
+      const r = await api<{ ok: true; following: boolean }>(`/api/friends/follow/${username}`, { method: "POST" });
+      setFollowing(r.following);
+    } finally {
+      setBusy(false);
     }
   }
+
   return (
     <button
       onClick={follow}
-      disabled={state !== "idle"}
+      disabled={busy || !loaded || following}
       className={
         "rounded-lg px-3 py-1 text-xs font-semibold transition-colors " +
-        (state === "done"
+        (following
           ? "bg-brand-500/15 text-brand-400"
           : "border border-ink-700 text-mist-100 hover:bg-ink-700/50 disabled:opacity-60")
       }
     >
-      {state === "done" ? "Following" : "Follow"}
+      {following ? "Following" : "Follow"}
     </button>
   );
 }

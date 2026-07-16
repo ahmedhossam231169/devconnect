@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useFriendStatus } from "../lib/friendStatus";
+import { getSocket } from "../lib/socket";
 import { timeAgo, type Post, type Comment } from "../lib/types";
 import { CodeBlock } from "./CodeBlock";
 import { Markdown } from "./Markdown";
@@ -303,6 +304,22 @@ export function PostCard({
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [commentDraft, setCommentDraft] = useState("");
   const [sending, setSending] = useState(false);
+
+  // لايكات/كومنتات/ريبوستات أي حد تاني بيعملها على البوست ده — بتتحدث لحظيًا
+  // من غير ما اليوزر يعمل reload (السيرفر بيبثها لكل المتصلين عبر broadcastPostUpdate)
+  useEffect(() => {
+    const s = getSocket();
+    const onUpdate = (n: { postId: string; likeCount?: number; commentCount?: number; repostCount?: number }) => {
+      if (n.postId !== post.id) return;
+      if (n.likeCount !== undefined) setLikeCount(n.likeCount);
+      if (n.commentCount !== undefined) setCommentCount(n.commentCount);
+      if (n.repostCount !== undefined) setRepostCount(n.repostCount);
+    };
+    s.on("post:update", onUpdate);
+    return () => {
+      s.off("post:update", onUpdate);
+    };
+  }, [post.id]);
 
   // تعديل/حذف
   const [menuOpen, setMenuOpen] = useState(false);

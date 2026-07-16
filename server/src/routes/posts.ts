@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { createPostSchema, createCommentSchema, createRepostSchema, feedQuerySchema } from "../schemas/posts.js";
 import { notify } from "../lib/notify.js";
 import { assertNotBlocked, isBlockedBetween } from "../lib/blocks.js";
+import { broadcastPostUpdate } from "../socket.js";
 
 export const postsRouter = Router();
 
@@ -286,6 +287,7 @@ postsRouter.post(
 
     const likeCount = await prisma.like.count({ where: { postId } });
     const mine = await prisma.like.findUnique({ where: { userId_postId: { userId, postId } } });
+    broadcastPostUpdate(postId, { likeCount });
     res.json({ ok: true, liked: !!mine, myReaction: mine?.type ?? null, likeCount });
   })
 );
@@ -333,6 +335,7 @@ postsRouter.post(
 
     const repostCount = await prisma.repost.count({ where: { postId } });
     const mine = await prisma.repost.findUnique({ where: { userId_postId: { userId, postId } } });
+    broadcastPostUpdate(postId, { repostCount });
     res.json({ ok: true, reposted: !!mine, myRepostComment: mine?.comment ?? null, repostCount });
   })
 );
@@ -435,6 +438,9 @@ postsRouter.post(
       link: "/feed",
     });
 
+    const commentCount = await prisma.comment.count({ where: { postId } });
+    broadcastPostUpdate(postId, { commentCount });
+
     res.status(201).json({ ok: true, comment });
   })
 );
@@ -495,6 +501,8 @@ postsRouter.delete(
       throw Errors.forbidden("You can only delete your own comments");
     }
     await prisma.comment.delete({ where: { id: commentId } });
+    const commentCount = await prisma.comment.count({ where: { postId: existing.postId } });
+    broadcastPostUpdate(existing.postId, { commentCount });
     res.json({ ok: true });
   })
 );

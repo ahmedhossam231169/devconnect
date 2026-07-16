@@ -40,6 +40,12 @@ export function emitToUser(userId: string, event: string, payload: unknown) {
   ioRef?.to(`user:${userId}`).emit(event, payload);
 }
 
+// بث تحديث بوست (عدد لايكات/كومنتات/ريبوستات) لكل المتصلين — عشان أي حد
+// فاتح البوست في الفيد يشوف العدد يتغيّر لحظيًا من غير ما يعمل reload
+export function broadcastPostUpdate(postId: string, patch: Record<string, unknown>) {
+  ioRef?.emit("post:update", { postId, ...patch });
+}
+
 export function setupSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: { origin: getAllowedOrigins() },
