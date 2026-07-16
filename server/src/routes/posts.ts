@@ -28,9 +28,8 @@ const postSelect = (viewerId: string) =>
       },
     },
     pinned: true,
-    // مصدر البوست (لو جاي من مجتمع أو صفحة) — الفيد بيعرضه كبادج
+    // مصدر البوست (لو جاي من مجتمع) — الفيد بيعرضه كبادج
     community: { select: { name: true, slug: true } },
-    page: { select: { name: true, slug: true } },
     _count: { select: { likes: true, comments: true, reposts: true } },
     // hack لطيف: بنجيب لايك/repost المستخدم الحالي بس — لو المصفوفة فيها عنصر يبقى عامل الفعل ده
     likes: { where: { userId: viewerId }, select: { userId: true, type: true } },
@@ -94,16 +93,14 @@ postsRouter.get(
     const FETCH_CAP = 300;
 
     // اللي بيظهر في الفيد: البوستات العامة + بوستات المجتمعات اللي أنا عضو فيها
-    // + بوستات الصفحات اللي أنا متابعها
     const visibleToViewer = {
       OR: [
-        { communityId: null, pageId: null },
+        { communityId: null },
         { community: { members: { some: { userId: viewerId } } } },
-        { page: { followers: { some: { userId: viewerId } } } },
       ],
     };
 
-    // تاب Relevant: شبكتك بس — أصدقاء + متابَعين + كوميونتيهاتك + صفحاتك + بوستاتك
+    // تاب Relevant: شبكتك بس — أصدقاء + متابَعين + كوميونتيهاتك + بوستاتك
     let relevantAnd = {};
     let repostUserFilter = {};
     if (q.sort === "relevant") {
@@ -127,7 +124,6 @@ postsRouter.get(
           OR: [
             { authorId: { in: networkIds } },
             { community: { members: { some: { userId: viewerId } } } },
-            { page: { followers: { some: { userId: viewerId } } } },
           ],
         }],
       };
@@ -602,7 +598,7 @@ postsRouter.patch(
 
 // ---------------------------------------------------------------
 // DELETE /api/posts/:id — حذف بوست
-// صاحبه، أو أدمن المجتمع/الصفحة اللي البوست جواها (moderation)
+// صاحبه، أو أدمن المجتمع اللي البوست جواه (moderation)
 // الـ likes والـ comments بيتحذفوا تلقائيًا (onDelete: Cascade في الـ schema)
 // ---------------------------------------------------------------
 postsRouter.delete(
@@ -613,7 +609,7 @@ postsRouter.delete(
     const userId = req.user!.userId;
     const existing = await prisma.post.findUnique({
       where: { id: postId },
-      select: { authorId: true, communityId: true, pageId: true },
+      select: { authorId: true, communityId: true },
     });
     if (!existing) throw Errors.notFound("Post");
 
@@ -623,12 +619,6 @@ postsRouter.delete(
         where: { communityId_userId: { communityId: existing.communityId, userId } },
       });
       allowed = membership?.role === "ADMIN";
-    }
-    if (!allowed && existing.pageId) {
-      const admin = await prisma.pageAdmin.findUnique({
-        where: { pageId_userId: { pageId: existing.pageId, userId } },
-      });
-      allowed = !!admin;
     }
     if (!allowed) {
       throw Errors.forbidden("You can only delete your own posts");
@@ -640,8 +630,8 @@ postsRouter.delete(
 );
 
 // ---------------------------------------------------------------
-// POST /api/posts/:id/pin — تثبيت/فك تثبيت (أدمن الكوميونتي/الصفحة بس)
-// البوستات المثبتة بتظهر فوق فيد الكوميونتي/الصفحة
+// POST /api/posts/:id/pin — تثبيت/فك تثبيت (أدمن الكوميونتي بس)
+// البوستات المثبتة بتظهر فوق فيد الكوميونتي
 // ---------------------------------------------------------------
 postsRouter.post(
   "/:id/pin",
@@ -651,25 +641,17 @@ postsRouter.post(
     const userId = req.user!.userId;
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { pinned: true, communityId: true, pageId: true },
+      select: { pinned: true, communityId: true },
     });
     if (!post) throw Errors.notFound("Post");
-    if (!post.communityId && !post.pageId) {
-      throw Errors.badRequest("Only community or page posts can be pinned");
+    if (!post.communityId) {
+      throw Errors.badRequest("Only community posts can be pinned");
     }
 
-    let isAdmin = false;
-    if (post.communityId) {
-      const membership = await prisma.communityMember.findUnique({
-        where: { communityId_userId: { communityId: post.communityId, userId } },
-      });
-      isAdmin = membership?.role === "ADMIN";
-    } else if (post.pageId) {
-      const admin = await prisma.pageAdmin.findUnique({
-        where: { pageId_userId: { pageId: post.pageId, userId } },
-      });
-      isAdmin = !!admin;
-    }
+    const membership = await prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId: post.communityId, userId } },
+    });
+    const isAdmin = membership?.role === "ADMIN";
     if (!isAdmin) throw Errors.forbidden("Only admins can pin posts");
 
     const updated = await prisma.post.update({

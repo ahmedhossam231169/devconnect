@@ -19,8 +19,6 @@ import Communities from "./pages/Communities";
 import CommunityDetail from "./pages/CommunityDetail";
 import UserProfile from "./pages/UserProfile";
 import Friends from "./pages/Friends";
-import Pages from "./pages/Pages";
-import PageDetail from "./pages/PageDetail";
 import Onboarding from "./pages/Onboarding";
 import Shortlist from "./pages/Shortlist";
 import Projects from "./pages/Projects";
@@ -50,8 +48,6 @@ export default function App() {
           <Route path="/communities/:slug" element={<ProtectedRoute><CommunityDetail /></ProtectedRoute>} />
           <Route path="/u/:username" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
           <Route path="/friends" element={<ProtectedRoute><Friends /></ProtectedRoute>} />
-          <Route path="/pages" element={<ProtectedRoute><Pages /></ProtectedRoute>} />
-          <Route path="/pages/:slug" element={<ProtectedRoute><PageDetail /></ProtectedRoute>} />
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
           <Route path="/shortlist" element={<RecruiterRoute><Shortlist /></RecruiterRoute>} />

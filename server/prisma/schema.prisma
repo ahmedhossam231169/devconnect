@@ -64,8 +64,6 @@ model User {
   blocksMade     Block[]  @relation("BlocksMade")
   blocksReceived Block[]  @relation("BlocksReceived")
   reportsMade    Report[] @relation("ReportsMade")
-  pageAdminships PageAdmin[]    @relation("PageAdminships")
-  pageFollowing  PageFollower[] @relation("PageFollowing")
   shortlistsMade ShortlistEntry[] @relation("ShortlistsMade")
   shortlistedAs  ShortlistEntry[] @relation("ShortlistedAs")
   jobsPosted     Job[]            @relation("JobsPosted")
@@ -154,12 +152,10 @@ model Post {
   // snippet طالب مساعدة — بيعرض بادج "Help Wanted" زي السؤال (اختياري للـ SNIPPET)
   wantsHelp    Boolean @default(false)
   imageUrl     String? // صورة مرفقة بالبوست (Cloudinary)
-  pinned       Boolean @default(false) // مثبّت فوق فيد الكوميونتي/الصفحة (أدمن بس)
-  // البوست ممكن يكون في مجتمع أو صفحة (أو عادي في الـ feed لو الاتنين null)
+  pinned       Boolean @default(false) // مثبّت فوق فيد الكوميونتي (أدمن بس)
+  // البوست ممكن يكون في مجتمع (أو عادي في الـ feed لو null)
   communityId String?
   community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  pageId      String?
-  page        Page?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -170,7 +166,6 @@ model Post {
   @@index([authorId, createdAt])
   @@index([type, createdAt])
   @@index([communityId, createdAt])
-  @@index([pageId, createdAt])
 }
 
 model Comment {
@@ -294,7 +289,7 @@ model Community {
   category    String // "Frontend", "Backend", "AI & ML", "DevOps", "Mobile"...
   avatarUrl   String? // لوجو الكوميونتي (Cloudinary)
   coverUrl    String? // صورة الغلاف في كارت الـ Hub — الديزاين الجديد
-  // وضع المدونة: لو true الأدمنّات بس اللي بينشروا (زي الـ Pages)
+  // وضع المدونة: لو true الأدمنّات بس اللي بينشروا
   adminOnlyPosting Boolean @default(false)
   // كوميونتي خاص: الانضمام بطلب وموافقة أدمن، والبوستات للأعضاء بس
   isPrivate Boolean @default(false)
@@ -409,55 +404,6 @@ model Report {
   reporter User @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
-}
-
-// ---------- Group 3: Pages (facebook-style) ----------
-
-enum PageRole {
-  ADMIN   // بيقدر ينشر ويدير
-  EDITOR  // بيقدر ينشر بس
-}
-
-model Page {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  bio         String?
-  category    String   // "Company", "Project", "Open Source", "Community"...
-  avatarUrl   String?
-  createdAt   DateTime @default(now())
-
-  admins    PageAdmin[]
-  followers PageFollower[]
-  posts     Post[]
-
-  @@index([category])
-}
-
-// أدمنّات/محرري الصفحة
-model PageAdmin {
-  pageId String
-  userId String
-  role   PageRole @default(ADMIN)
-
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  user User @relation("PageAdminships", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([pageId, userId])
-  @@index([userId])
-}
-
-// متابعي الصفحة
-model PageFollower {
-  pageId   String
-  userId   String
-  followedAt DateTime @default(now())
-
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  user User @relation("PageFollowing", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([pageId, userId])
-  @@index([userId])
 }
 
 // ---------- Group 5: Jobs & Hiring Pipeline (الديزاين الجديد) ----------

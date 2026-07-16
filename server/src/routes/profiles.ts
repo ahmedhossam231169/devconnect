@@ -199,7 +199,7 @@ profilesRouter.get(
 
     const [posts, memberships] = await Promise.all([
       prisma.post.findMany({
-        where: { authorId: user.id, communityId: null, pageId: null },
+        where: { authorId: user.id, communityId: null },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: { id: true, type: true, title: true, createdAt: true },
