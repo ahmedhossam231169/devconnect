@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Users, FileText, User, Lock, Search as SearchIcon } from "lucide-react";
 import { AppShell } from "../components/AppShell";
 import { api } from "../lib/api";
@@ -38,6 +38,17 @@ const fmt = (n: number) =>
 export default function SearchResults() {
   const [params] = useSearchParams();
   const q = (params.get("q") ?? "").trim();
+  const navigate = useNavigate();
+
+  // خانة بحث خاصة بالصفحة — بتظهر على الموبايل حيث الـ topbar search مختفي
+  const [term, setTerm] = useState(q);
+  useEffect(() => setTerm(q), [q]);
+  function submitSearch(e: FormEvent) {
+    e.preventDefault();
+    const t = term.trim();
+    if (t.length < 2) return;
+    navigate(`/search?q=${encodeURIComponent(t)}`);
+  }
 
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [posts, setPosts] = useState<SearchPost[]>([]);
@@ -90,6 +101,24 @@ export default function SearchResults() {
 
   return (
     <AppShell width="wide">
+      {/* خانة بحث للموبايل — الـ topbar search بيظهر lg فأكبر بس */}
+      <form onSubmit={submitSearch} role="search" className="relative mb-5 lg:hidden">
+        <button
+          type="submit"
+          aria-label="Search"
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded-full p-2 text-mist-600 hover:bg-ink-700 hover:text-mist-100"
+        >
+          <SearchIcon size={18} />
+        </button>
+        <input
+          className="w-full rounded-full border border-ink-700 bg-ink-800 py-2.5 pl-12 pr-4 text-sm text-mist-100 placeholder:text-mist-600 focus:border-brand-500 focus:outline-none"
+          placeholder="Search developers, posts, communities..."
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          aria-label="Search"
+        />
+      </form>
+
       <div className="mb-5">
         <h1 className="text-xl font-extrabold sm:text-2xl">
           {q ? <>Results for “{q}”</> : "Search"}
