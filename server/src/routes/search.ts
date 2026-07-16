@@ -16,7 +16,7 @@ searchRouter.get(
   asyncHandler(async (req, res) => {
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
     if (q.length < 2) {
-      return res.json({ ok: true, users: [], posts: [] });
+      return res.json({ ok: true, users: [], posts: [], communities: [] });
     }
 
     const me = req.user!.userId;
@@ -26,7 +26,7 @@ searchRouter.get(
       blocksReceived: { none: { blockerId: me } }, // أنا حظرته
     };
 
-    const [users, posts] = await Promise.all([
+    const [users, posts, communities] = await Promise.all([
       // المستخدمين: بحث في الـ username والاسم والـ headline والتخصص
       prisma.user.findMany({
         where: {
@@ -42,7 +42,7 @@ searchRouter.get(
             notBlocked,
           ],
         },
-        take: 8,
+        take: 20,
         select: {
           username: true,
           profile: { select: { displayName: true, avatarUrl: true, headline: true, specialty: true } },
@@ -60,7 +60,7 @@ searchRouter.get(
           author: notBlocked, // [SECURITY BUG-04] مايظهرش بوستات طرف محظور
         },
         orderBy: { createdAt: "desc" },
-        take: 8,
+        take: 20,
         select: {
           id: true,
           title: true,
@@ -68,6 +68,28 @@ searchRouter.get(
           type: true,
           createdAt: true,
           author: { select: { username: true, profile: { select: { displayName: true } } } },
+        },
+      }),
+      // الكوميونتيز — بحث بالاسم أو الوصف (نفس منطق الـ Hub)
+      prisma.community.findMany({
+        where: {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          category: true,
+          avatarUrl: true,
+          isPrivate: true,
+          members: { where: { userId: me }, select: { userId: true } },
+          _count: { select: { members: true } },
         },
       }),
     ]);
@@ -91,6 +113,18 @@ searchRouter.get(
       createdAt: p.createdAt,
     }));
 
-    res.json({ ok: true, users: shapedUsers, posts: shapedPosts });
+    const shapedCommunities = communities.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      category: c.category,
+      avatarUrl: c.avatarUrl ?? null,
+      isPrivate: c.isPrivate,
+      memberCount: c._count.members,
+      joinedByMe: c.members.length > 0,
+    }));
+
+    res.json({ ok: true, users: shapedUsers, posts: shapedPosts, communities: shapedCommunities });
   })
 );
