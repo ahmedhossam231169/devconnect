@@ -523,8 +523,21 @@ authRouter.get(
         redirect_uri: googleRedirectUri(),
       }),
     });
-    const tokenData = (await tokenRes.json()) as { access_token?: string };
-    if (!tokenData.access_token) throw Errors.unauthorized("Google authorization failed");
+    const tokenData = (await tokenRes.json()) as {
+      access_token?: string;
+      error?: string;
+      error_description?: string;
+    };
+    if (!tokenData.access_token) {
+      // جوجل بتقول السبب بالظبط (invalid_client / redirect_uri_mismatch / invalid_grant)
+      // وقبل كده كنا برميه في الزبالة ونطلع "Google authorization failed" ملهاش أي دلالة.
+      // بيروح للوجز بس — مش للمستخدم — عشان مانأكدش لمهاجم إن الـ client_id صح.
+      console.error(
+        `[google-oauth] token exchange failed: ${tokenData.error ?? tokenRes.status} — ` +
+          `${tokenData.error_description ?? "no description"} (redirect_uri=${googleRedirectUri()})`
+      );
+      throw Errors.unauthorized("Google authorization failed");
+    }
 
     // 2) هات بيانات المستخدم
     const gRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
