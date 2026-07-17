@@ -27,7 +27,7 @@ Effort: **S** ≤1h · **M** ~half a day · **L** ~1–2 days
 | 17 | 2 | **DATABASE.md** + the explicit "do I need another database?" verdict, and a documented (not implemented) replica/partitioning path. **Revised by Phase 1 discovery:** the DB is **Neon** (managed, pooled) — so pooling is already solved and the VPS does *not* need to run Postgres. Needs `connection_limit` tuned against Neon's ceiling instead. | DB | **Med** | M | Not started | `DATABASE.md` (new), `src/lib/prisma.ts`, `.env.example` |
 | 18 | 3 | **Load testing with k6** — scripts for signup, login, create post, load feed, follow, send message; capture RPS + p50/p95/p99 + error rate before and after #10/#16. | Perf | **Med** | L | Not started | `load/**` (new), `LOAD_TEST_REPORT.md` |
 | 19 | 4 | **Structured logging + error tracking.** `console.log`/`console.error` only, no request ids, no correlation. Add pino + a Sentry hook, with redaction so tokens/passwords never reach logs. | Prod | **Med** | M | Not started | `src/lib/logger.ts` (new), `src/middleware/errorHandler.ts`, `src/index.ts` |
-| 20 | 1 | **BUG-07 — forgot-password timing enumeration.** Body is identical for existing vs non-existing emails, but the existing branch does a DB write + SMTP send → measurable gap. Respond first, do the work after. | Security | **Med** | S | Not started | `src/routes/auth.ts` |
+| 20 | 1 | **BUG-07 — forgot-password timing enumeration.** Body was identical for existing vs non-existing emails, but the existing branch did a DB write + SMTP send *before responding* → the response time alone let an attacker enumerate registered emails. Fixed: respond first, then run the lookup + write + email in a detached background task (`sendResetEmail`, errors logged only — it can't touch the sent response). Timing is now constant. **Verified**: `forgot-password-timing.spec.ts` 3/3 (median gap 0.1ms); the negative control (work awaited before response + a 200ms simulated SMTP delay) reported VULN at a 2332ms gap — and building that control caught a **real test bug first**: a per-run IP tripped the 10/IP `authLimiter` after 10 requests, so most samples were uniform 429s that washed out the signal (fixed to a unique IP per request). | Security | **Med** | S | **Done** | `src/routes/auth.ts`, `src/tests/forgot-password-timing.spec.ts` |
 | 21 | 1 | **File-upload security.** Uploads go **client-side to Cloudinary**; the API only stores URLs, validated as `http(s)` — so no path traversal or disk risk, but also **no enforcement that URLs point at our Cloudinary account**, no server-side type/size check, and the signed-upload preset is unverified. Validate the host allowlist; document the preset config. | Security | **Med** | M | Not started | `src/schemas/{posts,profile}.ts`, `src/socket.ts`, `DEPLOYMENT.md` |
 | 22 | 2 | **Missing index for the global "recent" feed sort.** Every `Post` index leads with a discriminator (`authorId`/`type`/`communityId`), so an unfiltered `ORDER BY createdAt DESC` has no usable index. | DB/Perf | **Med** | S | Not started | `prisma/schema.prisma`, migration |
 | 23 | 4 | **OpenAPI/Swagger spec** for all 68 endpoints, served at `/api/docs` in non-prod. | Prod | **Med** | L | Not started | `src/lib/openapi.ts` (new), `src/index.ts` |
@@ -51,7 +51,7 @@ Effort: **S** ≤1h · **M** ~half a day · **L** ~1–2 days
 ## Status
 | Status | Count |
 |---|---|
-| Done | 8 |
+| Done | 9 |
 | Deferred (with reason) | 2 |
 | Blocked — needs your action | 2 |
-| Not started | 19 |
+| Not started | 18 |
