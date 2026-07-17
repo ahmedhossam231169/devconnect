@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://devconnect-beta-lovat.vercel.app/sitemap.xml
+Sitemap: https://loopin-beta-lovat.vercel.app/sitemap.xml

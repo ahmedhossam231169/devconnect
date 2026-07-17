@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------
+# Render Blueprint — تعريف سيرفس الباك إند كـ كود
+#
+# ليه الملف ده موجود:
+# السيرفس القديمة اتعمِلت بالكليك في اللوحة، فلما اتمسحت راحت كل إعداداتها
+# معاها ومحدش يعرف كانت متظبطة إزاي. الملف ده بيخلي السيرفس متكررة: أي مرة
+# جاية Render بيقراه ويبني نفس الحاجة بالظبط.
+#
+# إزاي تستخدمه:
+#   Render Dashboard → New → Blueprint → اختار الريبو → هيلاقي الملف ده لوحده
+#   وهيسألك على الأسرار اللي متعلّمة sync:false تحت.
+#
+# ⚠️ الأسرار عمرها ما تتكتب هنا — الملف ده في git. اللي هنا أسماء بس؛
+#    القيم بتتحط في لوحة Render وبتفضل فيها.
+# ---------------------------------------------------------------
+services:
+  - type: web
+    # ⬇️ غيّر الاسم ده للاسم الجديد اللي عايزه. ده اللي بيحدد الرابط:
+    #    https://<name>.onrender.com — واللي لازم يتحط في SERVER_URL تحت،
+    #    وفي callbacks بتاعت GitHub/Google.
+    name: loopin-api
+    runtime: node
+    plan: free
+
+    # ⚠️ مهم جدًا للأداء: داتابيز Neon بتاعتك في eu-central-1 (فرانكفورت).
+    #    لو السيرفس اتحطت في أوريجون مثلاً، كل query هتعدّي الأطلنطي رايح جاي
+    #    (~150ms للطلب الواحد) — وصفحة الفيد بتعمل أكتر من query.
+    #    خلي الاتنين في نفس القارة.
+    region: frankfurt
+
+    rootDir: server
+
+    # npm ci بدل npm install: بيلتزم بالـ package-lock بالظبط، فالبناء
+    # بيبقى متكرر ومافيش نسخة بتتغير من تحتك.
+    # postinstall في package.json بيشغّل prisma generate تلقائيًا.
+    # migrate deploy هنا لأن preDeployCommand مش متاح في الخطة المجانية —
+    # وهو idempotent فمافيش ضرر إنه يشتغل كل مرة.
+    buildCommand: npm ci && npm run build && npx prisma migrate deploy
+    startCommand: npm start
+
+    # Render بيستخدمه عشان يعرف الـ deploy نجح ولا لأ، وبيوقف الترافيك
+    # عن نسخة مش جاهزة. /api/readyz بيفحص الداتابيز فعلاً — مش زي /api/health
+    # اللي بيرجّع 200 حتى لو الداتابيز واقعة.
+    healthCheckPath: /api/readyz
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render بيحط السيرفس ورا بروكسي واحد بالظبط. الرقم ده بيحدد إزاي
+      # بنعرف IP المستخدم الحقيقي، واللي الـ rate limiting كله متبني عليه.
+      # [SECURITY BUG-06] غلط هنا = تجاوز الحماية من brute force.
+      - key: TRUST_PROXY
+        value: "1"
+
+      # ---- أسرار: بتتحط في لوحة Render، مش هنا ----
+      # sync:false معناها "اسألني عن القيمة، متجبهاش من الملف"
+
+      # رابط Neon **بالـ pooler** (فيه -pooler في اسم الهوست)
+      - key: DATABASE_URL
+        sync: false
+      # نفس الرابط **من غير -pooler**. الميجريشنز مابتشتغلش على الـ pooler:
+      # PgBouncer في transaction mode بيكسر الـ advisory locks بتاعة prisma.
+      - key: DIRECT_DATABASE_URL
+        sync: false
+
+      # ⚠️ لو حطيت سر جديد هنا، كل اليوزرس الحاليين هيتطردوا من حساباتهم.
+      # لو لسه معاك القديم استخدمه. 32 حرف على الأقل.
+      - key: JWT_SECRET
+        sync: false
+
+      # رابط الفرونت على Vercel — منه بيتعمل الـ CORS و redirects الـ OAuth.
+      # غلط هنا = الفرونت كله بياخد CORS errors.
+      - key: CLIENT_URL
+        sync: false
+      # رابط السيرفس دي نفسها (https://<name>.onrender.com).
+      # لازم يطابق الـ callback المسجّل في Google بالحرف.
+      - key: SERVER_URL
+        sync: false
+
+      # OAuth — التسجيل بالإيميل مقفول على @devconnect.com، يعني دول
+      # الطريقة الوحيدة اللي حد من بره يقدر يعمل بيها حساب. السيرفر بيرفض
+      # يقوم في الإنتاج من غير واحد منهم على الأقل.
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # توكن قراءة GitHub API (عرض المشاريع) — من غيره الحد 60 طلب/ساعة
+      # للـ IP كله وبيخلص فورًا على استضافة مشتركة زي Render.
+      - key: GITHUB_TOKEN
+        sync: false
+
+      # SMTP — من غيره إيميلات استعادة الباسورد بتتطبع في اللوجز بدل ما تتبعت
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
