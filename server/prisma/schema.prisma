@@ -62,6 +62,12 @@ model User {
   lastFailedLoginAt   DateTime?
   lockedUntil         DateTime?
   role         Role     @default(DEVELOPER)
+
+  // صلاحية الإشراف — منفصلة عن role عن قصد. role نوع الحساب (مطوّر/recruiter)
+  // وبيتبني عليه requireRole، فلو خلّينا ADMIN قيمة جواه يبقى الأدمن مش DEVELOPER
+  // ولا RECRUITER وتتكسر الفحوصات دي. الأدمن هنا مطوّر أو recruiter + صلاحية زيادة.
+  // بيتقرأ من الداتابيز في كل طلب (مش من الـ JWT) عشان سحب الصلاحية يسري فورًا.
+  isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -77,7 +83,8 @@ model User {
   followers      Follow[] @relation("Followers")
   blocksMade     Block[]  @relation("BlocksMade")
   blocksReceived Block[]  @relation("BlocksReceived")
-  reportsMade    Report[] @relation("ReportsMade")
+  reportsMade     Report[] @relation("ReportsMade")
+  reportsReviewed Report[] @relation("ReportsReviewed")
   shortlistsMade ShortlistEntry[] @relation("ShortlistsMade")
   shortlistedAs  ShortlistEntry[] @relation("ShortlistedAs")
   jobsPosted     Job[]            @relation("JobsPosted")
@@ -415,9 +422,31 @@ model Report {
   targetUserId   String?  // أو بلاغ عن مستخدم
   createdAt      DateTime @default(now())
 
-  reporter User @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  // دورة حياة المراجعة. من غير الأعمدة دي البلاغات بتتكوّم من غير ما حد
+  // يعرف اتعمل فيها إيه — وده كان الوضع فعلًا قبل كده.
+  status         ReportStatus @default(PENDING)
+  reviewedAt     DateTime?
+  reviewedById   String?
+  resolutionNote String?      @db.VarChar(1000) // ليه اتقفل البلاغ — للسجل الداخلي
+
+  reporter User  @relation("ReportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  // SetNull مش Cascade: لو المشرف اتمسح حسابه، سجل المراجعة يفضل موجود
+  reviewer User? @relation("ReportsReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
+  // شاشة المراجعة بتفلتر بالحالة وترتّب بالأقدم — الفهرس ده بيخدم ده مباشرة
+  @@index([status, createdAt])
+}
+
+// ملاحظة: targetPostId/targetUserId متسابين string مش foreign keys عن قصد.
+// البلاغ سجل تاريخي: لو البوست اللي اتبلّغ عنه اتمسح، البلاغ لازم يفضل قابل
+// للمراجعة (بيبان إن المحتوى اتمسح) بدل ما يختفي أو يمنع الحذف. الـ admin
+// routes بتجيب الهدف بـ batch lookup.
+enum ReportStatus {
+  PENDING   // جديد، محدش بصّ عليه
+  REVIEWING // مشرف ماسكه دلوقتي
+  RESOLVED  // اتاخد فيه إجراء
+  DISMISSED // اتراجع وطلع مفيش مخالفة
 }
 
 // ---------- Group 5: Jobs & Hiring Pipeline (الديزاين الجديد) ----------

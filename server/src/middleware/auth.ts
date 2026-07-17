@@ -8,6 +8,10 @@ declare global {
   namespace Express {
     interface Request {
       user?: TokenPayload;
+      // صلاحية الإشراف — بتتقرا من الداتابيز في requireAuth، مش من الـ JWT.
+      // مقصودة كده: لو كانت جوه التوكن، سحب الصلاحية مش هيسري غير لما
+      // التوكن يخلص أو نزوّد tokenVersion (اللي بيطلّع كل أجهزة اليوزر).
+      isAdmin?: boolean;
     }
   }
 }
@@ -30,7 +34,8 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   }
 
   prisma.user
-    .findUnique({ where: { id: payload.userId }, select: { tokenVersion: true } })
+    // isAdmin بيتضاف للـ select الموجود أصلًا → مفيش استعلام زيادة
+    .findUnique({ where: { id: payload.userId }, select: { tokenVersion: true, isAdmin: true } })
     .then((user) => {
       // مستخدم متمسح، أو التوكن من قبل آخر إعادة تعيين باسورد → مرفوض
       // (?? 0 عشان التوكنات القديمة اللي اتصدرت قبل الميزة تفضل شغّالة لحد أول reset)
@@ -38,9 +43,20 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
         return next(Errors.unauthorized("Session expired. Please sign in again."));
       }
       req.user = payload;
+      req.isAdmin = user.isAdmin;
       next();
     })
     .catch(next);
+}
+
+// guard للـ routes الإدارية. لازم ييجي بعد requireAuth (هو اللي بيملا req.isAdmin).
+// بيرجع 404 مش 403 عن قصد: 403 بيأكد لأي حد إن /api/admin موجود وإن الحساب ده
+// مش أدمن، وده بيدي المهاجم إشارة يدوّر بيها على حساب أدمن. 404 بتخلي المسار
+// كله كإنه مش موجود لغير الأدمن.
+export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) return next(Errors.unauthorized());
+  if (!req.isAdmin) return next(Errors.notFound("Route"));
+  next();
 }
 
 // guard إضافي للـ routes الخاصة بالـ recruiters بس (هنحتاجه في مرحلة الـ Talent Search)
