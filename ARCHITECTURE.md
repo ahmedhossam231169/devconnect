@@ -37,7 +37,8 @@ No `prisma/migrations/`, no test runner, no Dockerfile, no CI config, no Redis, 
 
 ```
 Browser (React SPA, Vite)
-   │  Authorization: Bearer <JWT>          ← token in localStorage
+   │  Authorization: Bearer <JWT>          ← 15m access token, in memory only
+   │  Cookie: devconnect_refresh           ← httpOnly, /api/auth, 30d, rotating
    ▼
 Express app  (server/src/index.ts)
    │
@@ -61,7 +62,11 @@ Socket.io  (server/src/socket.ts) — same HTTP server, same port
    └─ io.use(handshake auth) → verifyToken + tokenVersion check → socket.join(`user:{id}`)
 ```
 
-**Per-request auth path** (`middleware/auth.ts`): verify JWT signature → `SELECT tokenVersion FROM User WHERE id = ?` → compare against the token's `tokenVersion` → attach `req.user`. This costs **one indexed DB read on every authenticated request and socket handshake**; it is the mechanism that makes password-reset session revocation instant.
+**Per-request auth path** (`middleware/auth.ts`): verify JWT signature → `SELECT tokenVersion, isAdmin FROM User WHERE id = ?` → compare against the token's `tokenVersion` → attach `req.user` + `req.isAdmin`. This costs **one indexed DB read on every authenticated request and socket handshake**; it is what makes password-reset revocation and admin-revocation instant.
+
+**Session model** (`lib/refreshTokens.ts`, task #8): a 15-minute access token the page holds **in memory only**, plus a 30-day refresh token stored **hashed** in `RefreshToken` and delivered as an httpOnly cookie scoped to `/api/auth`. Each device is a `familyId`; every refresh rotates the token within its family. Replaying an already-rotated token means two copies exist, so the whole family is revoked — a stolen token buys minutes, not a month. A 15s grace window keeps two tabs refreshing at once from tripping that. `client/src/lib/api.ts` refreshes and retries once on any 401, so the short lifetime is invisible to the rest of the app.
+
+⚠️ The refresh cookie needs the API to be **same-site with the client** to survive Safari/Chrome third-party cookie blocking — see task #31.
 
 **Error contract** (uniform across REST): `{ ok: false, error: { code, message, details? } }`. Success: `{ ok: true, ... }`.
 
@@ -71,13 +76,18 @@ Socket.io  (server/src/socket.ts) — same HTTP server, same port
 
 ## 3. API endpoint inventory
 
-68 routes. Auth column: **Public** = no token; **Auth** = valid JWT; **Recruiter** = JWT + `role === RECRUITER`. All non-public routes additionally revalidate `tokenVersion` against the DB.
+76 routes. Auth column: **Public** = no token; **Auth** = valid JWT; **Recruiter** = JWT + `role === RECRUITER`; **Admin** = JWT + `isAdmin`. All non-public routes additionally revalidate `tokenVersion` against the DB.
 
 ### Auth — `/api/auth` (`routes/auth.ts`)
 | Method | Path | Auth | Input | Output |
 |---|---|---|---|---|
-| POST | `/register` | Public + authLimiter | `{email, username, password, displayName, role, yearsExperience, resumeUrl?}` | 201 `{ok, user, token}` |
-| POST | `/login` | Public + authLimiter | `{identifier, password, rememberMe?}` | `{ok, user, token}` (7d / 30d) |
+| POST | `/register` | Public + authLimiter | `{email, username, password, displayName, role, yearsExperience, resumeUrl?}` | 201 `{ok, user, token}` + refresh cookie |
+| POST | `/login` | Public + authLimiter | `{identifier, password, rememberMe?}` | `{ok, user, token}` (15m) + refresh cookie. `rememberMe` is now ignored — every session is 30d, extended on each refresh |
+| POST | `/refresh` | Public + cookie | — | `{ok, token}`, rotates the cookie. `409 REFRESH_RETRY` = another tab won the race, retry |
+| POST | `/logout` | Public + cookie | — | Revokes this device's session server-side |
+| POST | `/logout-all` | Auth | — | Revokes every session **and** bumps `tokenVersion` so live access tokens die immediately |
+| GET | `/sessions` | Auth | — | `{ok, sessions[]}` — one per device, `current` flagged |
+| DELETE | `/sessions/:id` | Auth | — | Signs out one device (ownership checked) |
 | GET | `/me` | Auth | — | `{ok, user}` |
 | GET | `/github` | Public | — | 302 → GitHub consent (signed `state`) |
 | GET | `/github/connect-url` | Auth | — | `{ok, url}` (state = `link:<userId>`) |
@@ -149,7 +159,23 @@ Socket.io  (server/src/socket.ts) — same HTTP server, same port
 `POST /request`, `POST /respond`, `DELETE /:username`, `GET /`, `GET /pending`, `GET /status/:username`, `POST /follow/:username` — all **Auth**. Follow/unfollow broadcasts `profile:update`.
 
 ### Moderation — `/api/moderation` (`routes/moderation.ts`)
-`POST /block/:username`, `GET /blocked`, `POST /report` — all **Auth**. Reports are write-only; **no admin review surface exists**.
+`POST /block/:username`, `GET /blocked`, `POST /report` — all **Auth**. Filing a report returns only a message, never the report id (the reporter has no business with it).
+
+### Admin — `/api/admin` (`routes/admin.ts`)
+**Admin** = valid JWT + `User.isAdmin`. `requireAdmin` returns **404, not 403**, to non-admins: a 403 would confirm the route exists and that the caller isn't an admin, which is a hint worth denying. `isAdmin` is read from the DB inside `requireAuth` (folded into the existing `tokenVersion` select — **0 extra queries**), *not* carried in the JWT, so revoking admin takes effect on the next request without touching `tokenVersion`.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/reports` | Admin | Review queue. `?status=&cursor=&limit=` — keyset paged, **oldest first** (a queue, not a feed) |
+| GET | `/reports/stats` | Admin | Counts per status. Declared **before** `/reports/:id` or the `:id` route would swallow it |
+| GET | `/reports/:id` | Admin | Full post body + `relatedCount` (other reports on the same target) |
+| PATCH | `/reports/:id` | Admin | `{status, resolutionNote?}`; stamps reviewer. `PENDING` returns it to the queue and clears the reviewer |
+
+Report targets are stored as loose ids (no FK) so a report survives its post being deleted — the admin still sees that a report was filed, marked `deleted: true`. Targets are hydrated with **two batched queries per page**, not one per report.
+
+**Granting admin:** `npm run admin:grant -- <username>` / `admin:revoke` / `admin:list`. It's a script rather than an endpoint on purpose: the first admin has to come from somewhere, and any network-reachable "bootstrap the first admin" endpoint is a backdoor for whoever finds it first. Revoking the last admin needs `--force`.
+
+**No dashboard UI exists** — this is the API a future dashboard would consume.
 
 ### Notifications — `/api/notifications`
 `GET /`, `POST /:id/read`, `POST /read-all` — all **Auth**, scoped to `req.user.userId`.
@@ -216,7 +242,7 @@ User 1─* Job ─* Application *─1 User (candidate)
 
 ### Key columns
 
-- **User** — `id` (cuid), `email` ⧉, `username` ⧉, `passwordHash?` (null for OAuth-only), `githubId?` ⧉, `googleId?` ⧉, `resetTokenHash?`, `resetTokenExpiry?`, `tokenVersion` (session revocation), `role` (DEVELOPER|RECRUITER).
+- **User** — `id` (cuid), `email` ⧉, `username` ⧉, `passwordHash?` (null for OAuth-only), `githubId?` ⧉, `googleId?` ⧉, `resetTokenHash?`, `resetTokenExpiry?`, `tokenVersion` (session revocation), `role` (DEVELOPER|RECRUITER), **`isAdmin`** (moderation privilege — separate from `role` because `role` is the account type and `requireRole` depends on it).
 - **Profile** — `userId` ⧉, `displayName`, `headline?`, `bio?`, `avatarUrl?`, `bannerUrl?`, `resumeUrl?`, `location?`, `yearsExperience`, `specialty?`, `availability`, `githubUsername?`, `onboarded`, `profileViews`, **`discoverable`** (recruiter-visibility consent, default `false`).
 - **Post** — `authorId`, `type`, `title?`, `body`, `codeLanguage?`, `codeContent?`, `wantsHelp`, `imageUrl?`, `pinned`, `communityId?`.
 - **Community** — `slug` ⧉, `category`, `adminOnlyPosting`, `isPrivate`.
@@ -253,7 +279,7 @@ User 1─* Job ─* Application *─1 User (candidate)
 ### Gaps identified for Phase 2
 - No `Post.createdAt` index without a leading discriminator → the "recent" global feed sort cannot use an index.
 - Connection pooling is handled by **Neon's pooler**, not by the app. `new PrismaClient()` uses defaults with no `connection_limit` tuning — needs review against Neon's connection ceiling (task #17).
-- `Report` has no `status`/`reviewedAt` and no admin surface — reports accumulate unreviewed.
+- ~~`Report` has no `status`/`reviewedAt` and no admin surface~~ → fixed (task #25): `ReportStatus` + reviewer columns + `@@index([status, createdAt])` serving the queue, and `/api/admin/reports`.
 - No soft-delete or audit trail anywhere.
 
 ---

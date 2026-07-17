@@ -16,6 +16,7 @@ import { communitiesRouter } from "./routes/communities.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { friendsRouter } from "./routes/friends.js";
 import { moderationRouter } from "./routes/moderation.js";
+import { adminRouter } from "./routes/admin.js";
 import { shortlistRouter } from "./routes/shortlist.js";
 import { searchRouter } from "./routes/search.js";
 import { feedRouter } from "./routes/feed.js";
@@ -25,6 +26,7 @@ import { getAllowedOrigins } from "./lib/cors.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
 import { healthRouter, markShuttingDown } from "./routes/health.js";
 import { prisma } from "./lib/prisma.js";
+import { pruneExpiredRefreshTokens } from "./lib/refreshTokens.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -74,6 +76,7 @@ app.use("/api/communities", communitiesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/friends", friendsRouter);
 app.use("/api/moderation", moderationRouter);
+app.use("/api/admin", adminRouter);
 app.use("/api/shortlist", shortlistRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/feed", feedRouter);
@@ -102,6 +105,14 @@ httpServer.keepAliveTimeout = 80_000;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 DevConnect API + WebSocket running on http://localhost:${PORT}`);
+
+  // كل تجديد بيسيب وراه صف محروق، فجدول RefreshToken بيكبر للأبد من غير
+  // التنضيف ده. بيتعمل وقت التشغيل مش على تايمر: بنعمل deploy كل كام يوم،
+  // والصفوف الميتة مالهاش أي أثر غير المساحة — مش محتاجة أدق من كده، ولا
+  // محتاجة cron يتظبط ويتنسى.
+  pruneExpiredRefreshTokens()
+    .then((n) => n > 0 && console.log(`🧹 pruned ${n} dead refresh token(s)`))
+    .catch((err) => console.error("refresh token prune failed (not fatal):", err));
 });
 
 // ---------- الإغلاق الآمن ----------

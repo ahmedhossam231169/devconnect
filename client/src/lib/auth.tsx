@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { api, ApiError } from "./api";
+import { api } from "./api";
 import { closeSocket } from "./socket";
+import {
+  bootstrapSession,
+  endSession,
+  onSessionEnded,
+  setAccessToken,
+  getAccessToken,
+} from "./token";
 
 // ---------------------------------------------------------------
 // AuthContext — مصدر الحقيقة الوحيد لحالة تسجيل الدخول في التطبيق
@@ -16,14 +23,14 @@ export interface AuthUser {
 
 interface AuthState {
   user: AuthUser | null;
-  loading: boolean; // لسه بنتأكد من التوكن المخزن ولا لأ
+  loading: boolean; // لسه بنحاول نستعيد الجلسة من الكوكي ولا لأ
   setSession: (token: string, user: AuthUser) => void;
   refresh: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
-const TOKEN_KEY = "devconnect_token";
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
+/** الـ access token بقى في الذاكرة — شوف lib/token.ts للسبب */
+export const getToken = () => getAccessToken();
 
 const AuthContext = createContext<AuthState | null>(null);
 
@@ -31,27 +38,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // عند فتح التطبيق: لو في توكن مخزن، نتأكد إنه لسه صالح
+  // عند فتح التطبيق مفيش توكن في الذاكرة (مات مع الـ tab اللي فات)، فبنحاول
+  // نطلع واحد جديد من كوكي الـ refresh. لو نجح يبقى المستخدم لسه داخل.
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    api<{ ok: true; user: AuthUser }>("/api/auth/me")
-      .then((res) => setUser(res.user))
-      .catch((err) => {
-        // بنمسح التوكن بس لو فعلاً مرفوض (401) — مش على rate limit أو مشكلة شبكة،
-        // عشان مايتعملش logout غصب عن المستخدم على خطأ عابر
-        if (err instanceof ApiError && err.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-        }
+    let cancelled = false;
+    bootstrapSession()
+      .then(async (ok) => {
+        if (!ok || cancelled) return;
+        const res = await api<{ ok: true; user: AuthUser }>("/api/auth/me");
+        if (!cancelled) setUser(res.user);
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        /* مفيش جلسة، أو الشبكة وقعت — بنفضل مسجّلين خروج */
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // لو أي نداء اكتشف إن الجلسة خلصت، بنطلّع المستخدم من الواجهة مرة واحدة
+  useEffect(() => onSessionEnded(() => setUser(null)), []);
+
   const setSession = (token: string, u: AuthUser) => {
-    localStorage.setItem(TOKEN_KEY, token);
+    setAccessToken(token);
     setUser(u);
   };
 
@@ -65,9 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
+  // بقى async: الخروج دلوقتي بيبطّل الجلسة على السيرفر كمان، مش بس بيمسح
+  // التوكن محليًا. من غير النداء ده، التوكن اللي في إيد أي حد تاني بيفضل شغال.
+  const logout = async () => {
     closeSocket(); // نقفل الاتصال المباشر عشان مايفضلش شغال بتوكن قديم
+    await endSession();
     setUser(null);
   };
 

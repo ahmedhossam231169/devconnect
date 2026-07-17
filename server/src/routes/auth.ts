@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
 import { signToken } from "../lib/jwt.js";
-import { Errors } from "../lib/errors.js";
+import { Errors, AppError } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { registerSchema, loginSchema } from "../schemas/auth.js";
@@ -10,8 +10,30 @@ import { isLocked, recordFailedLogin, clearLoginThrottle } from "../lib/loginThr
 import { getAllowedOrigins } from "../lib/cors.js";
 import { config } from "../lib/config.js";
 import { authLimiter } from "../middleware/rateLimit.js";
+import {
+  issueRefreshToken,
+  rotateRefreshToken,
+  revokeByRawToken,
+  revokeAllForUser,
+  revokeFamily,
+  listSessions,
+  familyIdForRawToken,
+  RefreshError,
+} from "../lib/refreshTokens.js";
+import {
+  setRefreshCookie,
+  clearRefreshCookie,
+  readRefreshCookie,
+  requireSessionHeader,
+} from "../lib/refreshCookie.js";
 
 export const authRouter = Router();
+
+/** جلسة جديدة + الكوكي بتاعها. بيتنادى من كل مسار بيسجّل دخول. */
+async function startSession(userId: string, req: Request, res: Response): Promise<void> {
+  const { raw, expiresAt } = await issueRefreshToken(userId, req);
+  setRefreshCookie(res, raw, expiresAt);
+}
 
 // ---------------------------------------------------------------
 // [SECURITY] OAuth state — حماية من CSRF على الـ callback
@@ -159,6 +181,7 @@ authRouter.post(
 
     // [SECURITY BUG-05] مستخدم جديد → tokenVersion يبدأ من 0
     const token = signToken({ userId: user.id, role: user.role, tokenVersion: 0 });
+    await startSession(user.id, req, res);
     res.status(201).json({ ok: true, user, token });
   })
 );
@@ -206,10 +229,11 @@ authRouter.post(
       select: publicUserSelect,
     });
 
-    const token = signToken(
-      { userId: user.id, role: user.role, tokenVersion: user.tokenVersion },
-      input.rememberMe ? "30d" : "7d"
-    );
+    const token = signToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
+    // rememberMe بقى مالوش لازمة: كل الجلسات بقى عمرها 30 يوم بتتمدد مع كل
+    // تجديد، والاستمرارية جاية من الـ refresh cookie. سايبينه في الـ schema
+    // عشان الـ client الحالي لسه بيبعته — بيتتجاهل.
+    await startSession(user.id, req, res);
     res.json({ ok: true, user: publicUser, token });
   })
 );
@@ -369,6 +393,9 @@ authRouter.get(
     }
 
     const token = signToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
+    // الكوكي بيتحط هنا وإحنا لسه على دومين الـ API في تنقل top-level، يعني
+    // first-party وقت التخزين — المتصفح بيقبله حتى لو بيحجب كوكيز الطرف التالت
+    await startSession(user.id, req, res);
     // بنرجّع المستخدم للـ frontend والتوكن في الـ URL (الـ client هيلقطه ويخزنه)
     // ده رابط redirect فعلي (مش CORS whitelist)، فبناخد أول دومين مسموح بس
     const clientUrl = getAllowedOrigins()[0];
@@ -463,6 +490,11 @@ authRouter.post(
         lockedUntil: null,
       },
     });
+
+    // tokenVersion فوق بتبطّل الـ access tokens بس. من غير السطر ده، حد سرق
+    // الحساب بيفضل ماسك refresh token شغال وبيجدّد بيه بعد ما الضحية تغيّر
+    // الباسورد — يعني إعادة التعيين مابتطردهوش، وهي دي وظيفتها الأساسية.
+    await revokeAllForUser(user.id);
 
     res.json({ ok: true, message: "Password updated. You can sign in now." });
   })
@@ -584,7 +616,130 @@ authRouter.get(
     }
 
     const token = signToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
+    await startSession(user.id, req, res); // شوف الملاحظة في callback بتاع GitHub
     const clientUrl = getAllowedOrigins()[0];
     res.redirect(`${clientUrl}/auth/callback#token=${token}`); // [SECURITY] fragment مش بيتبعت للسيرفرات ولا بيتسجل في logs
+  })
+);
+
+// ---------------------------------------------------------------
+// POST /api/auth/refresh — access token جديد من الكوكي
+// عام عن قصد: الـ access token القديم غالبًا خلص خلاص، فمينفعش نطلبه.
+// الكوكي نفسه هو إثبات الهوية.
+// ---------------------------------------------------------------
+authRouter.post(
+  "/refresh",
+  asyncHandler(async (req, res) => {
+    requireSessionHeader(req); // CSRF — شوف lib/refreshCookie.ts
+
+    const raw = readRefreshCookie(req);
+    if (!raw) throw Errors.unauthorized("No session");
+
+    try {
+      const rotated = await rotateRefreshToken(raw, req);
+      const token = signToken({
+        userId: rotated.userId,
+        role: rotated.role,
+        tokenVersion: rotated.tokenVersion,
+      });
+      setRefreshCookie(res, rotated.raw, rotated.expiresAt);
+      res.json({ ok: true, token });
+    } catch (err) {
+      if (err instanceof RefreshError) {
+        // تاب تاني سبقنا للتجديد — الجلسة سليمة تمامًا. مابنمسحش الكوكي
+        // (الجديد بتاعه موجود فيه أصلاً) وبنقول للعميل يعيد المحاولة.
+        if (err.reason === "concurrent") {
+          throw new AppError(409, "REFRESH_RETRY", "Refresh raced with another tab. Retry.");
+        }
+        // باقي الأسباب → نفس الرد ونمسح الكوكي. التفرقة بين "منتهي" و"متعاد
+        // استخدامه" مابتفيدش العميل وبتوصف حالة داخلية لأي حد بيجرب.
+        clearRefreshCookie(res);
+        throw Errors.unauthorized("Session expired. Please sign in again.");
+      }
+      throw err;
+    }
+  })
+);
+
+// ---------------------------------------------------------------
+// POST /api/auth/logout — تسجيل خروج الجهاز ده
+// عام: التوكن ممكن يكون خلص، والخروج لازم يشتغل برضه.
+// ---------------------------------------------------------------
+authRouter.post(
+  "/logout",
+  asyncHandler(async (req, res) => {
+    requireSessionHeader(req);
+    const raw = readRefreshCookie(req);
+    // بنبطّل الجلسة على السيرفر — ده اللي بيخلي الخروج حقيقي بدل ما يبقى
+    // مجرد مسح من localStorage عند المستخدم بس
+    if (raw) await revokeByRawToken(raw);
+    clearRefreshCookie(res);
+    res.json({ ok: true });
+  })
+);
+
+// ---------------------------------------------------------------
+// GET /api/auth/sessions — الأجهزة الداخلة على الحساب
+// ---------------------------------------------------------------
+authRouter.get(
+  "/sessions",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const raw = readRefreshCookie(req);
+    // بنحلّه مرة واحدة قبل الـ map — استعلام واحد بدل واحد لكل جلسة
+    const currentFamily = raw ? await familyIdForRawToken(raw) : null;
+    const sessions = await listSessions(req.user!.userId);
+    res.json({
+      ok: true,
+      sessions: sessions.map((s) => ({
+        id: s.familyId,
+        createdAt: s.createdAt,
+        expiresAt: s.expiresAt,
+        userAgent: s.userAgent,
+        ip: s.ip,
+        current: s.familyId === currentFamily,
+      })),
+    });
+  })
+);
+
+// ---------------------------------------------------------------
+// DELETE /api/auth/sessions/:id — تطليع جهاز بعينه
+// ---------------------------------------------------------------
+authRouter.delete(
+  "/sessions/:id",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const familyId = req.params.id!;
+    // لازم نتأكد إن العيلة دي بتاعت اليوزر ده — غير كده أي حد داخل يقدر
+    // يطلّع أي حد تاني بمعرفة الـ familyId بتاعه
+    const owned = await prisma.refreshToken.findFirst({
+      where: { familyId, userId: req.user!.userId },
+      select: { id: true },
+    });
+    if (!owned) throw Errors.notFound("Session");
+
+    await revokeFamily(familyId);
+    res.json({ ok: true });
+  })
+);
+
+// ---------------------------------------------------------------
+// POST /api/auth/logout-all — تطليع كل الأجهزة
+// ---------------------------------------------------------------
+authRouter.post(
+  "/logout-all",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const revoked = await revokeAllForUser(req.user!.userId);
+    // tokenVersion كمان: الـ refresh tokens اتلغت، بس الـ access tokens
+    // اللي في إيد الأجهزة التانية لسه صالحة لحد 15 دقيقة. البمب ده بيبطّلهم
+    // فورًا — ده بالظبط الفرق بين "خروج" و"خروج دلوقتي حالًا".
+    await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    clearRefreshCookie(res);
+    res.json({ ok: true, revoked });
   })
 );

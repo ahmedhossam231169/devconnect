@@ -12,9 +12,21 @@ export interface TokenPayload {
   tokenVersion: number;
 }
 
-export function signToken(payload: TokenPayload, expiresIn: "7d" | "30d" = "7d"): string {
-  // "30d" لما المستخدم يعلّم "Keep me signed in for 30 days" وقت اللوجين
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+/**
+ * عمر الـ access token.
+ *
+ * كان 7 أيام (أو 30 مع "keep me signed in"). الـ JWT مالوش إلغاء — بيفضل
+ * صالح لحد ما يخلص، يعني توكن مسروق كان بيدي دخول كامل لشهر. 15 دقيقة
+ * بتخلي شباك الضرر ده 15 دقيقة، والاستمرارية بقت شغلة الـ refresh token
+ * (lib/refreshTokens.ts) اللي متخزن في الداتابيز وبيتلغي فعليًا.
+ *
+ * ليه 15 مش أقل: كل تجديد = طلب شبكة + كتابة في الداتابيز. 15 دقيقة توازن
+ * معقول بين ده وبين شباك التوكن المسروق.
+ */
+const ACCESS_TTL = "15m";
+
+export function signToken(payload: TokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TTL });
 }
 
 export function verifyToken(token: string): TokenPayload {

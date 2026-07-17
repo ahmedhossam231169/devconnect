@@ -40,17 +40,50 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem("devconnect_token");
+// بيتحقن من token.ts وقت التشغيل. الحقن ده بيكسر دايرة الـ import: token.ts
+// محتاج API_BASE_URL من هنا، وهنا محتاجين نجدّد من هناك.
+type TokenHooks = {
+  getAccessToken: () => string | null;
+  refreshAccessToken: () => Promise<string | null>;
+  forceEndSession: () => void;
+};
+let hooks: TokenHooks | null = null;
+export const registerTokenHooks = (h: TokenHooks) => {
+  hooks = h;
+};
 
-  const res = await fetch(API_BASE_URL + path, {
+async function send(path: string, options: RequestInit, token: string | null) {
+  return fetch(API_BASE_URL + path, {
     ...options,
+    // الـ refresh cookie لازم يتبعت مع طلبات auth، والـ CORS بيسمح بكده
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "X-Requested-With": "devconnect",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
+}
+
+export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let token = hooks?.getAccessToken() ?? null;
+
+  let res = await send(path, options, token);
+
+  // الـ access token عمره 15 دقيقة، فالـ 401 دي حالة عادية متوقعة مش استثناء.
+  // بنجدّد ونعيد الطلب مرة واحدة — باقي التطبيق مالوش دعوة بده خالص.
+  if (res.status === 401 && hooks) {
+    const fresh = await hooks.refreshAccessToken();
+    if (fresh) {
+      token = fresh;
+      res = await send(path, options, token);
+    } else {
+      // مفيش جلسة — بنبلّغ الـ AuthProvider مرة واحدة بدل ما كل نداء
+      // فاشل يعمل redirect بنفسه
+      hooks.forceEndSession();
+    }
+  }
 
   const data = await res.json().catch(() => null);
 

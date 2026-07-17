@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth, type AuthUser } from "../lib/auth";
+import { setAccessToken } from "../lib/token";
 
 // السيرفر بيرجّعنا هنا بـ #token=... — بنخزنه ونجيب بيانات المستخدم
 // [SECURITY] بنستخدم fragment (#) مش query (?) لأن الـ fragment ما بيتبعتش
@@ -19,7 +20,9 @@ export default function AuthCallback() {
       navigate("/login");
       return;
     }
-    localStorage.setItem("devconnect_token", token);
+    // في الذاكرة بس. كوكي الـ refresh السيرفر حطه خلاص وإحنا جايين من عنده،
+    // فالاستمرارية بعد الـ reload جاية منه مش من هنا.
+    setAccessToken(token);
     api<{ ok: true; user: AuthUser }>("/api/auth/me")
       .then((res) => {
         setSession(token, res.user);
