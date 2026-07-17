@@ -6,6 +6,7 @@ import { Errors } from "../lib/errors.js";
 import { asyncHandler } from "../middleware/errorHandler.js";
 import { requireAuth } from "../middleware/auth.js";
 import { registerSchema, loginSchema } from "../schemas/auth.js";
+import { isLocked, recordFailedLogin, clearLoginThrottle } from "../lib/loginThrottle.js";
 import { getAllowedOrigins } from "../lib/cors.js";
 import { config } from "../lib/config.js";
 import { authLimiter } from "../middleware/rateLimit.js";
@@ -182,8 +183,23 @@ authRouter.post(
     const invalidCreds = Errors.unauthorized("Invalid credentials");
     if (!user || !user.passwordHash) throw invalidCreds;
 
+    // [SECURITY BUG-06] الحساب متقفل من كتر المحاولات الفاشلة؟
+    // بنرجّع نفس رسالة "Invalid credentials" عن قصد مش رسالة "الحساب متقفل":
+    // رسالة مميزة كانت هتبقى أداة enumeration (بتأكد إن الحساب موجود)، وده
+    // بيهدم الحماية اللي الكود ده ماشي عليها في كل مكان. المستخدم العادي
+    // مابيوصلش هنا أصلاً — بيقابل حد الـ IP (10) الأول برسالته الواضحة.
+    if (isLocked(user)) throw invalidCreds;
+
     const valid = await bcrypt.compare(input.password, user.passwordHash);
-    if (!valid) throw invalidCreds;
+    if (!valid) {
+      await recordFailedLogin(user);
+      throw invalidCreds;
+    }
+
+    // دخول ناجح → الحالة تتصفّر عشان محاولات قديمة متفرقة ما تتراكمش
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await clearLoginThrottle(user.id);
+    }
 
     const publicUser = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
@@ -439,6 +455,12 @@ authRouter.post(
         resetTokenExpiry: null,
         // [SECURITY BUG-05] يبطّل كل الجلسات القديمة — أي JWT اتصدر قبل كده يترفض
         tokenVersion: { increment: 1 },
+        // [SECURITY BUG-06] صاحب الحساب أثبت ملكيته للإيميل، فالقفل مالوش لازمة.
+        // من غير ده مستخدم اتقفل عليه حسابه بهجوم موزّع كان هيفضل مقفول 15 دقيقة
+        // حتى بعد ما يغيّر باسورده — يعني المهاجم يقدر يمنعه من الدخول باستمرار.
+        failedLoginAttempts: 0,
+        lastFailedLoginAt: null,
+        lockedUntil: null,
       },
     });
 

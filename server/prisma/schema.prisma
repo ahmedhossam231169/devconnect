@@ -53,6 +53,14 @@ model User {
   // [SECURITY BUG-05] رقم إصدار الجلسات — بيتحط في الـ JWT وبيتقارن في كل طلب.
   // إعادة تعيين الباسورد بتزوّده، فأي توكن قديم (حتى لو مسروق) بيبطل فورًا.
   tokenVersion Int      @default(0)
+
+  // [SECURITY BUG-06] حماية من الـ brute force على مستوى الحساب نفسه.
+  // الـ rate limiting بتاع الـ IP لوحده مابيحميش من هجوم موزّع: مهاجم عنده
+  // مئات الـ IPs بياخد من كل واحد نصيبه ويكمّل على نفس الحساب. الحالة دي
+  // بتتخزن في الداتابيز عشان تعيش بعد أي restart أو deploy.
+  failedLoginAttempts Int       @default(0)
+  lastFailedLoginAt   DateTime?
+  lockedUntil         DateTime?
   role         Role     @default(DEVELOPER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

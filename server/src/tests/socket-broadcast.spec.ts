@@ -4,8 +4,15 @@
 // io.emit — يعني الحدث بيروح لكل متصل على السيرفر. النتيجة إن أي حد فاتح
 // التطبيق كان بيستقبل تحديثات بوستات الكوميونتيهات الخاصة اللي مش عضو فيها.
 //
-// شغّله بـ (لازم السيرفر شغال على :4000 وداتابيز تجريبية):
+// شغّله بـ (لازم السيرفر شغال على :4000 بـ TRUST_PROXY=1، وداتابيز تجريبية):
+//   TRUST_PROXY=1 npx tsx src/index.ts      # terminal 1
 //   npx tsx src/tests/socket-broadcast.spec.ts
+//
+// ليه TRUST_PROXY=1: الـ authLimiter بيسمح بـ 10 طلبات auth كل 15 دقيقة لكل IP.
+// السويت بتسجّل 3 يوزرس، يعني بعد ٣ تشغيلات ورا بعض من نفس الـ IP كانت بتاخد
+// 429 وتموت — وده اللي بيخلي سويتات الأمان تتعطّل من غير ما حد ياخد باله.
+// كل تشغيلة دلوقتي بتتقمّص IP فريد عن طريق X-Forwarded-For، فبتفضل قابلة
+// لإعادة التشغيل. (نفس أسلوب login-throttle.spec.)
 //
 // اصطلاح النتائج:
 //   ✓ PASS = التطبيق تصرّف صح (آمن)
@@ -16,10 +23,18 @@ import { io as ioc, type Socket } from "socket.io-client";
 const B = "http://localhost:4000";
 const TAG = Date.now().toString(36);
 
+// IP فريد لكل تشغيلة (نطاق TEST-NET-3 المخصص للتوثيق) — عشان الـ authLimiter
+// اللي بيتعد على الـ IP ما يخليش السويت غير قابلة لإعادة التشغيل
+const RUN_IP = `203.0.113.${Math.floor(Math.random() * 254)}`;
+
 async function req(method: string, path: string, token?: string, body?: unknown) {
   const res = await fetch(B + path, {
     method,
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Forwarded-For": RUN_IP,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
   let data: any = null;
