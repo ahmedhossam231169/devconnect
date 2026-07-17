@@ -42,7 +42,19 @@ services:
     #
     # migrate deploy هنا لأن preDeployCommand مش متاح في الخطة المجانية —
     # وهو idempotent فمافيش ضرر إنه يشتغل كل مرة.
-    buildCommand: npm ci --include=dev && npm run build && npx prisma migrate deploy
+    #
+    # ⚠️ migrate diff --exit-code هو حارس ضد فشل صامت حصل فعلاً:
+    # ميجريشن اتسجّلت في _prisma_migrations على إنها نجحت، والأعمدة بتاعتها
+    # معملتش. و`migrate deploy` بيقرأ **السجل** مش الداتابيز الفعلية، فقال
+    # "No pending migrations" والبناء عدّى — والنتيجة إن اللوجين كان بيرمي 500
+    # في الإنتاج على كل محاولة. السطر ده بيقارن السكيما بالداتابيز الحقيقية
+    # وبيرجّع exit=2 لو فيه أي فرق، فالـ deploy بيفشل بصوت عالي بدل ما يطلع
+    # "ناجح" وهو مكسور.
+    buildCommand: >-
+      npm ci --include=dev &&
+      npm run build &&
+      npx prisma migrate deploy &&
+      npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
     startCommand: npm start
 
     # Render بيستخدمه عشان يعرف الـ deploy نجح ولا لأ، وبيوقف الترافيك
