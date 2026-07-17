@@ -26,6 +26,7 @@ import { getAllowedOrigins } from "./lib/cors.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
 import { healthRouter, markShuttingDown } from "./routes/health.js";
 import { prisma } from "./lib/prisma.js";
+import { pruneExpiredRefreshTokens } from "./lib/refreshTokens.js";
 
 const app = express();
 const PORT = config.PORT;
@@ -104,6 +105,14 @@ httpServer.keepAliveTimeout = 80_000;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 DevConnect API + WebSocket running on http://localhost:${PORT}`);
+
+  // كل تجديد بيسيب وراه صف محروق، فجدول RefreshToken بيكبر للأبد من غير
+  // التنضيف ده. بيتعمل وقت التشغيل مش على تايمر: بنعمل deploy كل كام يوم،
+  // والصفوف الميتة مالهاش أي أثر غير المساحة — مش محتاجة أدق من كده، ولا
+  // محتاجة cron يتظبط ويتنسى.
+  pruneExpiredRefreshTokens()
+    .then((n) => n > 0 && console.log(`🧹 pruned ${n} dead refresh token(s)`))
+    .catch((err) => console.error("refresh token prune failed (not fatal):", err));
 });
 
 // ---------- الإغلاق الآمن ----------
