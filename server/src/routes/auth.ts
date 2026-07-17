@@ -532,14 +532,12 @@ authRouter.get(
       // جوجل بتقول السبب بالظبط (invalid_client / redirect_uri_mismatch / invalid_grant)
       // وقبل كده كنا برميه في الزبالة ونطلع "Google authorization failed" ملهاش أي دلالة.
       // بيروح للوجز بس — مش للمستخدم — عشان مانأكدش لمهاجم إن الـ client_id صح.
-      // شكل الـ secret (طوله وبادئته) — مش قيمته. invalid_client مابيفرقش بين
-      // "سر غلط" و"سر مقصوص وقت النسخ"، والطول بيحسمها: سر جوجل GOCSPX- + 28 حرف.
-      const secret = config.GOOGLE_CLIENT_SECRET;
-      const shape = `len=${secret.length}, prefix_ok=${secret.startsWith("GOCSPX-")}`;
+      // الـ client_id والـ redirect_uri الاتنين علنيين (بيبانوا في رابط الموافقة)،
+      // وهما اللي بيحددوا بتكلم أنهي client بالظبط لما تبقى عندك أكتر من واحد.
       console.error(
         `[google-oauth] token exchange failed: ${tokenData.error ?? tokenRes.status} — ` +
           `${tokenData.error_description ?? "no description"} ` +
-          `(redirect_uri=${googleRedirectUri()}, client_id=${config.GOOGLE_CLIENT_ID}, secret ${shape})`
+          `(redirect_uri=${googleRedirectUri()}, client_id=${config.GOOGLE_CLIENT_ID})`
       );
       throw Errors.unauthorized("Google authorization failed");
     }
