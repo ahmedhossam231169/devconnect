@@ -36,6 +36,22 @@ export const cloudinaryUrl = (message = "Upload the file through the app") =>
     return u.pathname.slice(1).split("/")[0] === cloud;
   }, { message });
 
+// [SECURITY BUG-08] اسم العرض بيتحقن في subject الإيميل، والـ subject header.
+// سطر جديد جواه معناه حقن headers (Bcc/Reply-To) في إيميل طالع باسمنا.
+// بنمنعها من المصدر — مفيش اسم عرض شرعي فيه سطر جديد أو محرف تحكم.
+//
+// بنمنع \p{Cc} (محارف التحكم) بس، مش \p{Cf}: الأخيرة فيها علامات اتجاه
+// النص (RLM/LRM) اللي بتستخدم شرعيًا في الأسماء العربية والعبرية.
+//
+// ⚠️ ده بيغطي مسار التسجيل/تعديل البروفايل بس — أسماء OAuth بتتخزن من غير
+// ما تعدي من هنا، فالتعقيم في lib/email.ts هو اللي بيغطيها.
+export const displayName = z
+  .string()
+  .trim()
+  .min(2, "Display name is too short")
+  .max(60, "Display name is too long")
+  .regex(/^[^\p{Cc}]*$/u, "Display name can't contain line breaks or control characters");
+
 export const SPECIALTIES = [
   "Frontend", "Backend", "Full Stack", "DevOps", "Mobile",
   "AI/ML", "Data Engineer", "UI/UX", "QA/Testing", "Security",
@@ -45,7 +61,7 @@ export const SPECIALTIES = [
 // تحديث البروفايل — بيانات المطور، وأهمها اللي فلتر الـ HR هيشتغل عليه
 // ---------------------------------------------------------------
 export const updateProfileSchema = z.object({
-  displayName: z.string().min(2, "Display name is too short").max(60).optional(),
+  displayName: displayName.optional(),
   headline: z.string().max(120).optional(),
   bio: z.string().max(1000).optional(),
   location: z.string().max(100).optional(),

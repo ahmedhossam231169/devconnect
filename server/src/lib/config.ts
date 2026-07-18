@@ -86,6 +86,16 @@ const schema = z
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASS: z.string().min(1).optional(),
     SMTP_FROM: z.string().min(1).default("DevConnect <no-reply@devconnect.app>"),
+
+    // مفتاح أمان للتشغيل المحلي: بيجبر الإيميلات إنها تتطبع في الـ console
+    // حتى لو SMTP متظبط. الداعي: ملفات الاختبار بتضرب endpoints بتبعت إيميل
+    // (زي forgot-password) عشرات المرات — ومن غير المفتاح ده بتتبعت رسايل
+    // حقيقية من حساب SMTP الحقيقي لعناوين وهمية، فبتاكل الرصيد وترفع نسبة
+    // الارتداد اللي بتضر سمعة المُرسِل. شغّل السويتات بـ EMAIL_DISABLED=1.
+    EMAIL_DISABLED: z
+      .enum(["0", "1", "true", "false"])
+      .optional()
+      .transform((v) => v === "1" || v === "true"),
   })
   // في الإنتاج مفيش fallbacks — لازم تتحط صراحة
   .superRefine((env, ctx) => {
@@ -188,8 +198,13 @@ export const config = Object.freeze({
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
-  /** فيه SMTP متظبط؟ لو لأ الإيميلات بتتطبع في الـ console بدل ما تتبعت */
-  hasSmtp: !!(parsed.data.SMTP_HOST && parsed.data.SMTP_USER && parsed.data.SMTP_PASS),
+  /**
+   * فيه SMTP متظبط؟ لو لأ الإيميلات بتتطبع في الـ console بدل ما تتبعت.
+   * EMAIL_DISABLED بتغلبه عشان التشغيل المحلي مايبعتش بريد حقيقي.
+   */
+  hasSmtp:
+    !parsed.data.EMAIL_DISABLED &&
+    !!(parsed.data.SMTP_HOST && parsed.data.SMTP_USER && parsed.data.SMTP_PASS),
 });
 
 // تحذير مش خطأ: من غير اسم الحساب، فحص روابط الرفع بيرجع لمضيف Cloudinary

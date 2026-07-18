@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cloudinaryUrl } from "./profile.js";
+import { cloudinaryUrl, displayName } from "./profile.js";
 
 // التسجيل بالإيميل/الباسورد من الويب سايت مقصور على إيميلات الشركة.
 // GitHub/Google بيعملوا حساب من مسار تاني (auth callbacks) فمش بيمروا على الـ schema ده.
@@ -23,7 +23,7 @@ export const registerSchema = z
     username,
     password: z.string().min(8, "Password must be at least 8 characters"),
     role: z.enum(["DEVELOPER", "RECRUITER"]).default("DEVELOPER"),
-    displayName: z.string().min(2, "Display name is too short").max(60),
+    displayName,
     // سنين الخبرة إلزامية للاتنين (Developer و Recruiter)
     yearsExperience: z.coerce
       .number()
