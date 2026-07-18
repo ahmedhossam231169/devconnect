@@ -335,6 +335,10 @@ async function notifyOfflineRecipients(
   for (const r of recipients) {
     await sendEmail(
       r.email,
+      // [SECURITY BUG-08] الاسم الخام مقصود هنا مش safeSenderName: الـ subject
+      // نص عادي مش HTML، فتهريب HTML كان هيخلي المستخدم يشوف "&amp;" حرفيًا
+      // في عنوان الإيميل. الخطر الحقيقي في الـ subject هو CR/LF (حقن headers)
+      // وده بيتعقّم جوه sendEmail نفسها لكل الإيميلات.
       `${senderName} messaged you on DevConnect`,
       `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">

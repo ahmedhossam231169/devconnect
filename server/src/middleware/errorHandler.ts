@@ -20,6 +20,23 @@ export const asyncHandler =
   (req, res, next) =>
     Promise.resolve(fn(req, res, next)).catch(next);
 
+/**
+ * أخطاء body-parser بتيجي بشكل معروف: type + status رقمي.
+ * بنتأكد من الاتنين مع بعض عشان ما نرجّعش status جاي من error عشوائي
+ * (مكتبة تانية ممكن تحط .status بمعنى مختلف تمامًا).
+ */
+function isBodyParserError(err: unknown): err is { type: string; status: number } {
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as { type?: unknown; status?: unknown };
+  return (
+    typeof e.type === "string" &&
+    e.type.startsWith("entity.") &&
+    typeof e.status === "number" &&
+    e.status >= 400 &&
+    e.status < 500
+  );
+}
+
 // 404 لأي route مش موجود
 export function notFoundHandler(req: Request, res: Response) {
   const body: ErrorBody = {
@@ -61,7 +78,24 @@ export function errorHandler(
     return res.status(422).json(body);
   }
 
-  // 3) أي حاجة غير متوقعة — بنسجلها كاملة في اللوج
+  // 3) أخطاء express.json (body-parser): جسم أكبر من الحد، أو JSON مشوّه.
+  //    دي أخطاء عميل ومعاها status صحيح جاهز، بس الكود كان بيتجاهله ويرجّع
+  //    500 — يعني العميل بياخد "في مشكلة في السيرفر" وهو اللي باعت طلب غلط،
+  //    والأسوأ إنها بتتسجل عندك كأعطال سيرفر وبتغرّق أي error monitoring.
+  //    بنتحقق من type عشان ما نثقش في أي .status على أي error عشوائي.
+  if (isBodyParserError(err)) {
+    const tooLarge = err.type === "entity.too.large";
+    const body: ErrorBody = {
+      ok: false,
+      error: {
+        code: tooLarge ? "PAYLOAD_TOO_LARGE" : "MALFORMED_JSON",
+        message: tooLarge ? "Request body is too large" : "Request body is not valid JSON",
+      },
+    };
+    return res.status(err.status).json(body);
+  }
+
+  // 4) أي حاجة غير متوقعة — بنسجلها كاملة في اللوج
   //    وبنرجع للمستخدم رسالة عامة من غير ما نسرّب تفاصيل داخلية
   console.error(`[ERROR] ${req.method} ${req.path}`, err);
   const body: ErrorBody = {

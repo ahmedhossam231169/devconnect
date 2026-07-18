@@ -20,7 +20,30 @@ const transporter = config.hasSmtp
     })
   : null;
 
-export async function sendEmail(to: string, subject: string, html: string) {
+// [SECURITY BUG-08] الـ subject هو header في بروتوكول الإيميل، والـ headers
+// بتتفصل بسطور جديدة. أي CR/LF جوه الـ subject معناه إن اللي بعده بيتقرا
+// كـ header مستقل — يعني حقن Bcc أو Reply-To في إيميل رسمي طالع باسمنا.
+//
+// بنعقّم هنا جوه sendEmail مش عند المستدعي: دي النقطة الوحيدة اللي كل
+// الإيميلات بتعدّي منها، فمفيش مستدعي جديد يقدر ينسى الفحص. ومهم إن
+// التعقيم ده مش تهريب HTML — الـ subject نص عادي مش HTML، فلو هرّبناه
+// المستخدم كان هيشوف "&amp;" حرفيًا في عنوان الإيميل.
+//
+// ⚠️ ده مش دفاع زيادة: أسماء العرض الجاية من OAuth (gh.name / g.name في
+// routes/auth.ts) بتتخزن من غير ما تمر على أي Zod schema، فالفحص ده هو
+// خط الدفاع الفعلي لها.
+export function headerSafe(subject: string): string {
+  return subject
+    // محارف التحكم كلها → مسافة. ملاحظة: CR/LF بيتغطوا مرتين (هنا وفي ضغط
+    // المسافات تحت) — التكرار مقصود، أي تعديل على سطر منهم مايفتحش ثغرة لوحده.
+    .replace(/[\p{Cc}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200); // الـ subjects الطويلة بتتقص في العملاء أصلاً
+}
+
+export async function sendEmail(to: string, rawSubject: string, html: string) {
+  const subject = headerSafe(rawSubject);
   if (!transporter) {
     // وضع التطوير: نطبع بدل ما نبعت — اللينكات بتظهر في logs السيرفر
     const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
