@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyToken, type TokenPayload } from "./lib/jwt.js";
 import { prisma } from "./lib/prisma.js";
 import { getAllowedOrigins } from "./lib/cors.js";
+import { cloudinaryUrl } from "./schemas/profile.js";
 
 // ---------------------------------------------------------------
 // طبقة الـ real-time — Socket.io
@@ -18,8 +19,9 @@ const sendMessageSchema = z
     body: z.string().max(5000).default(""),
     codeLanguage: z.string().max(20).optional(),
     codeContent: z.string().max(10_000).optional(),
-    // مرفق (اترفع على Cloudinary من الـ client) — http(s) بس زي باقي الروابط
-    attachmentUrl: z.string().url().refine((v) => /^https?:\/\//i.test(v)).optional(),
+    // مرفق (اترفع على Cloudinary من الـ client) — لازم يكون على حسابنا (BUG-11)،
+    // مش أي رابط. بيتعرض للطرف التاني في المحادثة كصورة/لينك تحميل.
+    attachmentUrl: cloudinaryUrl().optional(),
     attachmentType: z.enum(["image", "file"]).optional(),
     attachmentName: z.string().max(120).optional(),
     attachmentSize: z.number().int().min(0).max(20 * 1024 * 1024).optional(),

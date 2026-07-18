@@ -74,6 +74,12 @@ const schema = z
     GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().trim().min(1).optional(),
 
+    // اسم حساب Cloudinary بتاعنا. الرفع بيحصل من الـ client، والـ API بيخزن
+    // الروابط بس — فبنستخدم ده عشان نتأكد إن الروابط دي بتشاور على حسابنا
+    // إحنا مش على أي سيرفر تاني (schemas/profile.ts → cloudinaryUrl).
+    // لو مش متظبط، الفحص بيرجع لمضيف res.cloudinary.com بس (شوف BUG-11).
+    CLOUDINARY_CLOUD_NAME: z.string().trim().min(1).optional(),
+
     // ---- SMTP (اختياري — من غيره إيميلات الاستعادة بتتطبع في الـ logs) ----
     SMTP_HOST: z.string().min(1).optional(),
     SMTP_PORT: z.coerce.number().int().positive().max(65535).default(587),
@@ -185,5 +191,15 @@ export const config = Object.freeze({
   /** فيه SMTP متظبط؟ لو لأ الإيميلات بتتطبع في الـ console بدل ما تتبعت */
   hasSmtp: !!(parsed.data.SMTP_HOST && parsed.data.SMTP_USER && parsed.data.SMTP_PASS),
 });
+
+// تحذير مش خطأ: من غير اسم الحساب، فحص روابط الرفع بيرجع لمضيف Cloudinary
+// بس — بيمنع أي سيرفر تاني، لكن بيسمح بحسابات Cloudinary تانية. في الإنتاج
+// ده لازم يتظبط عشان القيد يكمل. مش بنوقف السيرفر عشان ما نكسرش deploy قايم.
+if (config.isProd && !config.CLOUDINARY_CLOUD_NAME) {
+  console.warn(
+    "⚠️  CLOUDINARY_CLOUD_NAME is not set — upload URLs are only checked for the res.cloudinary.com host, " +
+      "not tied to your account. Set it to close BUG-11 fully."
+  );
+}
 
 export type Config = typeof config;

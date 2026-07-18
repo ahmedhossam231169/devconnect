@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { httpUrl } from "./profile.js";
+import { cloudinaryUrl } from "./profile.js";
 
 const baseFields = {
   title: z.string().max(120, "Title is too long").optional(),
   body: z.string().min(1, "Post body is required").max(5000, "Post is too long"),
-  imageUrl: httpUrl().optional(), // صورة مرفقة (Cloudinary) — http(s) بس، بتتعرض في href/src
+  // صورة مرفقة — لازم تكون من رفعنا على Cloudinary، مش أي رابط (BUG-11).
+  // بتتعرض كـ src في فيد كل الناس، فأي رابط خارجي = تتبّع لكل من يشوف البوست.
+  imageUrl: cloudinaryUrl().optional(),
 };
 
 // discriminatedUnion: قواعد مختلفة حسب نوع البوست

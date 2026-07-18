@@ -123,11 +123,22 @@ export async function rotateRefreshToken(
   // واللي بيسيب التطبيق شهر بيتطلب منه
   const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
 
-  // معاملة واحدة: حرق القديم وإنشاء الجديد لازم يحصلوا مع بعض. لو الإنشاء
-  // فشل بعد الحرق، المستخدم بيتطلع بره من غير سبب.
-  await prisma.$transaction([
-    prisma.refreshToken.update({ where: { id: existing.id }, data: { rotatedAt: new Date() } }),
-    prisma.refreshToken.create({
+  // الفحص فوق (existing.rotatedAt) بيقرا ثم يقرر — بين القراءة والكتابة
+  // طلب تاني يقدر يحرق نفس التوكن، فيبقى الاتنين قرأوا null والاتنين نجحوا
+  // وطلّعوا توكنين حيّين من عيلة واحدة (TOCTOU). الحل هنا claim ذرّي:
+  // updateMany بشرط rotatedAt IS NULL. تحت عزل Postgres الافتراضي، الطلب
+  // التاني بيستنى الأول يـ commit وبعدين شرطه بيطابق صفر صفوف — فواحد بس
+  // بيكسب الحرق. الخاسر بيتعامل كـ "concurrent" (سباق تابين، مش سرقة).
+  //
+  // الـ claim والإنشاء في transaction واحدة: لو الإنشاء فشل بعد الحرق،
+  // الاتنين بيترجعوا، فالمستخدم مايتطلعش بره من غير توكن جديد.
+  const won = await prisma.$transaction(async (tx) => {
+    const claim = await tx.refreshToken.updateMany({
+      where: { id: existing.id, rotatedAt: null },
+      data: { rotatedAt: new Date() },
+    });
+    if (claim.count === 0) return false; // طلب تاني سبقنا للحرق
+    await tx.refreshToken.create({
       data: {
         userId: existing.userId,
         tokenHash: hash(raw2),
@@ -135,8 +146,11 @@ export async function rotateRefreshToken(
         expiresAt,
         ...deviceInfo(req),
       },
-    }),
-  ]);
+    });
+    return true;
+  });
+
+  if (!won) throw new RefreshError("concurrent");
 
   return {
     userId: existing.userId,

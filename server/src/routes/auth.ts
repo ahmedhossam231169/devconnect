@@ -421,39 +421,49 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { email } = forgotSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    // مهم: بنرجع نفس الرد سواء الإيميل موجود أو لأ
-    // عشان محدش يقدر يفحص أنهي إيميلات متسجلة عندنا (user enumeration)
-    if (user && user.passwordHash) {
-      // بنولّد توكن عشوائي، بنبعت النسخة الأصلية في الإيميل
-      // وبنخزن الـ hash بس في الداتابيز — لو حد سرق الداتابيز مايعرفش يستخدمه
-      const rawToken = crypto.randomBytes(32).toString("hex");
-      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          resetTokenHash: tokenHash,
-          resetTokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 دقيقة
-        },
-      });
-
-      const clientUrl = getAllowedOrigins()[0];
-      const resetLink = `${clientUrl}/reset-password?token=${rawToken}`;
-      const mail = passwordResetEmail(resetLink);
-      await sendEmail(email, mail.subject, mail.html);
-    } else if (user && !user.passwordHash) {
-      // حساب OAuth من غير باسورد: رابط الاسترداد مالوش لازمة — نوضّحله يدخل إزاي.
-      // الرد للطالب زي ما هو تمامًا، فمفيش تسريب لوجود الحساب (نفس حماية الـ enumeration).
-      const provider = user.googleId ? "Google" : user.githubId ? "GitHub" : "a social login";
-      const mail = oauthAccountEmail(provider);
-      await sendEmail(email, mail.subject, mail.html);
-    }
-
+    // [SECURITY BUG-07] الرد لازم يخرج قبل أي شغل بيعتمد على وجود الحساب.
+    // الرسالة واحدة في كل الحالات، بس الوقت كان بيفضح:
+    //   موجود  → كتابة داتابيز + SMTP (بطيء)
+    //   مش موجود → مفيش (سريع)
+    // فرق التوقيت لوحده كان بيخلي المهاجم يعدّ الإيميلات المسجلة حتى والرد
+    // متطابق. بنرد الأول، وبعدها نعمل الشغل في الخلفية — فالتوقيت بقى ثابت.
     res.json({ ok: true, message: "If that email exists, a reset link has been sent." });
+
+    // مفصول عن الرد عن قصد. أخطاؤه بتتسجل بس — مايقدرش يكتب على response
+    // اتبعت خلاص، وأي throw هنا من غير catch بيبقى unhandled rejection.
+    void sendResetEmail(email).catch((err) =>
+      console.error(`[forgot-password] background send failed for a request:`, err)
+    );
   })
 );
+
+/** شغل الاستعادة الفعلي — بيجري بعد ما الرد يخرج، عشان التوقيت يفضل ثابت */
+async function sendResetEmail(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return; // مفيش حساب — مفيش حاجة تتبعت (والطالب مش هيعرف الفرق)
+
+  if (user.passwordHash) {
+    // توكن عشوائي: الأصلي بيتبعت في الإيميل، والـ hash بس بيتخزن — لو
+    // الداتابيز اتسربت مايفتحش استعادة
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetTokenHash: tokenHash,
+        resetTokenExpiry: new Date(Date.now() + 30 * 60 * 1000), // 30 دقيقة
+      },
+    });
+    const clientUrl = getAllowedOrigins()[0];
+    const mail = passwordResetEmail(`${clientUrl}/reset-password?token=${rawToken}`);
+    await sendEmail(email, mail.subject, mail.html);
+  } else {
+    // حساب OAuth من غير باسورد: رابط الاسترداد مالوش لازمة — نوضّحله يدخل إزاي
+    const provider = user.googleId ? "Google" : user.githubId ? "GitHub" : "a social login";
+    const mail = oauthAccountEmail(provider);
+    await sendEmail(email, mail.subject, mail.html);
+  }
+}
 
 // ---------------------------------------------------------------
 // POST /api/auth/reset-password — الخطوة 2: تعيين كلمة سر جديدة بالتوكن

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cloudinaryUrl } from "./profile.js";
 
 // التسجيل بالإيميل/الباسورد من الويب سايت مقصور على إيميلات الشركة.
 // GitHub/Google بيعملوا حساب من مسار تاني (auth callbacks) فمش بيمروا على الـ schema ده.
@@ -29,8 +30,9 @@ export const registerSchema = z
       .int("Must be a whole number")
       .min(0, "Can't be negative")
       .max(60, "That doesn't look right"),
-    // الـ CV إلزامي لل Developer بس — لينك PDF من Cloudinary بعد رفعه في الفورم
-    resumeUrl: z.string().url("Upload your resume first").optional(),
+    // الـ CV إلزامي لل Developer بس — لينك PDF من Cloudinary بعد رفعه في الفورم.
+    // لازم يكون على حسابنا (BUG-11)، والـ .pdf بيتفحص تحت في superRefine.
+    resumeUrl: cloudinaryUrl("Upload your resume first").optional(),
   })
   .superRefine((data, ctx) => {
     if (data.role === "DEVELOPER") {

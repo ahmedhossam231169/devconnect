@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { config } from "../lib/config.js";
 
 // [SECURITY] z.string().url() لوحدها بتقبل سكيمات زي javascript: و data:
 // واللينكات دي بتتعرض في href على البروفايل → stored XSS
@@ -8,6 +9,32 @@ export const httpUrl = (message = "Enter a valid URL") =>
     .string()
     .url(message)
     .refine((v) => /^https?:\/\//i.test(v), { message: "Only http(s) links are allowed" });
+
+// [SECURITY BUG-11] الحقول اللي بتتعرض كصورة/مرفق لمستخدمين تانيين (الأفاتار،
+// البانر، صورة البوست، مرفق الرسالة، الـ CV) لازم تكون من رفعنا إحنا على
+// Cloudinary — مش أي رابط http(s). من غير القيد ده مستخدم يقدر يحط avatarUrl
+// على سيرفر بيتحكم فيه، وساعتها متصفح أي حد بيفتح البروفايل بيجيب الصورة من
+// هناك (تسريب IP + تتبّع)، وكمان بيتخطى Cloudinary تمامًا (مفيش حد أقصى حجم
+// ولا أي إشراف على المحتوى).
+//
+// ملاحظة: websiteUrl و githubUrl مش بيمروا على ده — دول روابط خارجية شرعية
+// للمستخدم، وبيتعرضوا كـ href (بيتضغطوا، مش بيتجابوا تلقائي) فخطرهم أقل.
+export const cloudinaryUrl = (message = "Upload the file through the app") =>
+  httpUrl(message).refine((v) => {
+    let u: URL;
+    try {
+      u = new URL(v);
+    } catch {
+      return false;
+    }
+    // مضيف تسليم الأصول في Cloudinary — الرفع بيروح api.cloudinary.com والأصل
+    // بيتسلّم من res.cloudinary.com/<cloud_name>/...
+    if (u.hostname !== "res.cloudinary.com") return false;
+    const cloud = config.CLOUDINARY_CLOUD_NAME;
+    if (!cloud) return true; // مش متظبط (dev/test) → فحص المضيف يكفي
+    // أول جزء في المسار لازم يكون اسم الحساب بتاعنا
+    return u.pathname.slice(1).split("/")[0] === cloud;
+  }, { message });
 
 export const SPECIALTIES = [
   "Frontend", "Backend", "Full Stack", "DevOps", "Mobile",
@@ -27,11 +54,13 @@ export const updateProfileSchema = z.object({
   availability: z.enum(["OPEN_TO_WORK", "NOT_LOOKING", "FREELANCE_ONLY"]).optional(),
   // [SECURITY BUG-01] موافقة الظهور للـ recruiters في talent search
   discoverable: z.boolean().optional(),
+  // روابط خارجية شرعية للمستخدم — أي http(s)
   websiteUrl: httpUrl().or(z.literal("")).optional(),
   githubUrl: httpUrl().or(z.literal("")).optional(),
-  avatarUrl: httpUrl().or(z.literal("")).optional(),
-  bannerUrl: httpUrl().or(z.literal("")).optional(),
-  resumeUrl: httpUrl().or(z.literal("")).optional(),
+  // حقول مرفوعة — لازم تكون على Cloudinary بتاعنا (BUG-11)
+  avatarUrl: cloudinaryUrl().or(z.literal("")).optional(),
+  bannerUrl: cloudinaryUrl().or(z.literal("")).optional(),
+  resumeUrl: cloudinaryUrl().or(z.literal("")).optional(),
   // الخبرات الوظيفية — بنستبدل القايمة كلها (نفس أسلوب الـ skills)
   experiences: z
     .array(
