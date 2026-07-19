@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # يشتغل يدوي كمان من تبويب Actions
+  workflow_dispatch:
+
+# push جديد على نفس الفرع بيلغي الـ run القديم بدل ما يزحموا الطابور
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Node 22 عن قصد: ده اللي engines والإنتاج (Render/VPS) بيستهدفوه. التطوير
+  # المحلي على 26، فتثبيت CI على 22 بيخلي أي اختلاف سلوك يبان هنا مش في
+  # الإنتاج — وده بالظبط اللي مهمة #35 بتوصي بيه.
+  NODE_VERSION: "22"
+
+jobs:
+  server:
+    name: server — typecheck · test · build
+    runs-on: ubuntu-latest
+
+    # داتابيز مؤقتة للـ run ده بس — بتتمسح مع الـ runner، فمفيش خطر على أي
+    # بيانات حقيقية (وهو السبب اللي setup.ts بيرفض عشانه أي fallback على
+    # DATABASE_URL بتاع الإنتاج).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: devconnect_test
+        ports:
+          - 5432:5432
+        # الـ job مايبدأش لحد ما الداتابيز تبقى جاهزة تستقبل اتصالات
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # postgres محلي من غير pooler، فالـ direct URL هو نفسه
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/devconnect_test
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/devconnect_test
+      # setup.ts بيقراهم — بيرفض التشغيل من غيرهم عشان ما يكتبش على إنتاج بالغلط
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/devconnect_test
+      TEST_DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/devconnect_test
+      # قيمة وهمية بس بتعدّي شرط الـ 32 حرف بتاع config. مش سر حقيقي — الـ run
+      # كله معزول ومؤقت.
+      JWT_SECRET: ci-only-not-a-real-secret-000000000000
+      NODE_ENV: test
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      # npm ci = تثبيت نظيف من الـ lockfile بالظبط (postinstall بيعمل prisma generate)
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # الداتابيز فاضية — بننشئ الـ schema بنفس الـ migrations بتاعة الإنتاج،
+      # فبنختبر إن الـ migrations نفسها سليمة مش بس الكود
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Test
+        run: npm test
+
+      # لازم يعدّي حتى في CI: build فاشل معناه deploy فاشل
+      - name: Build
+        run: npm run build
+
+      # ثغرات اعتماديات الإنتاج بس. --omit=dev عن قصد: اعتماديات التطوير
+      # (زي vite في العميل) مابتوصلش للمستخدمين، ومش عايزين نوقف الـ CI على
+      # ثغرة في أداة بناء. اعتماديات إنتاج السيرفر نضيفة دلوقتي.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  client:
+    name: client — typecheck · build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
