@@ -1,0 +1,88 @@
+# ---------------------------------------------------------------
+# ستاك الاستضافة الذاتية: قاعدة بيانات + ميجريشن لمرة واحدة + الـ API.
+#
+# ده بيقوم بنسخة إنتاج مكتملة على جهاز واحد (VPS مثلاً). الترتيب مضمون:
+#   db (سليمة) → migrate (بيخلص وينجح) → app (بيقوم)
+#
+# التشغيل:
+#   cp server/.env.example server/.env   ثم املا القيم الحقيقية
+#   docker compose up --build
+#
+# ملاحظة عن الإنتاج على Neon: لو داتابيزك مُدارة (Neon)، مش محتاج خدمة db
+# هنا — شيلها وخلي DATABASE_URL يشاور على Neon. التفاصيل في DEPLOYMENT.md.
+# ---------------------------------------------------------------
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devconnect
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devconnect}
+      POSTGRES_DB: devconnect
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # الـ migrate و app مايبدأوش لحد ما الداتابيز تبقى جاهزة فعلاً
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # خدمة لمرة واحدة: بتطبّق الميجريشنز وبتخرج. الـ app بيستناها تنجح.
+  # مفصولة عن الـ app عن قصد: كده الميجريشن بيتعمل مرة واحدة مضبوطة، مش
+  # مرة لكل نسخة app لو اتوسّعت لأكتر من واحدة.
+  migrate:
+    build:
+      context: ./server
+    command: npx prisma migrate deploy
+    environment:
+      # postgres محلي من غير pooler، فالـ direct URL هو نفسه
+      DATABASE_URL: postgresql://devconnect:${POSTGRES_PASSWORD:-devconnect}@db:5432/devconnect
+      DIRECT_DATABASE_URL: postgresql://devconnect:${POSTGRES_PASSWORD:-devconnect}@db:5432/devconnect
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: ./server
+    restart: unless-stopped
+    # الأسرار (JWT_SECRET، OAuth، SMTP، Cloudinary) من ملف .env بتاعك.
+    # روابط الداتابيز بتتحدد تحت وبتغلب أي قيمة في الملف، فبتشاور على db المحلية.
+    env_file:
+      - ./server/.env
+    environment:
+      DATABASE_URL: postgresql://devconnect:${POSTGRES_PASSWORD:-devconnect}@db:5432/devconnect
+      DIRECT_DATABASE_URL: postgresql://devconnect:${POSTGRES_PASSWORD:-devconnect}@db:5432/devconnect
+      # التطبيق ورا كونتينر واحد (أو reverse proxy لاحقًا) — بروكسي واحد
+      TRUST_PROXY: "1"
+    ports:
+      - "${APP_PORT:-4000}:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # نفس فحص الجاهزية بتاع الـ load balancer — بيتأكد إن الداتابيز واصلة
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:4000/api/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ⚠️ Redis موجود بس مش بيشتغل افتراضيًا (profile). السبب: لسه مفيش كود
+  # بيستخدمه — إضافته اتأجّلت (المهمة #9) لحد ما نبقى multi-instance. كونتينر
+  # شغّال مالوش مستهلك = خدمة بتتأمّن وتترصد على الفاضي. لما #9 ينزل، شغّله بـ:
+  #   docker compose --profile with-redis up
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: ["with-redis"]
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
