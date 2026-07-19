@@ -63,7 +63,7 @@ export default function Onboarding() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      <div className="mb-2 text-2xl font-extrabold text-brand-400">⌁ DevConnect</div>
+      <div className="mb-2 text-2xl font-extrabold text-brand-400">⌁ loopIn</div>
 
       <div className="card w-full max-w-lg">
         {/* شريط التقدم */}

@@ -174,7 +174,7 @@ export function FeedSidebar({ data }: { data: SidebarData | null }) {
 
       <p className="px-1 text-[11px] leading-relaxed text-mist-600">
         ABOUT · PRIVACY · TERMS · COOKIE POLICY
-        <br />© {new Date().getFullYear()} DEVCONNECT
+        <br />© {new Date().getFullYear()} LOOPIN
       </p>
     </div>
   );

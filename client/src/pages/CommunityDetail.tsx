@@ -242,7 +242,7 @@ export default function CommunityDetail() {
             {inviteOpen && (
               <FriendPicker
                 title={`Invite a friend to ${community.name}`}
-                message={`Join me in the ${community.name} community on DevConnect 👇\n${window.location.origin}/communities/${community.slug}`}
+                message={`Join me in the ${community.name} community on loopIn 👇\n${window.location.origin}/communities/${community.slug}`}
                 onClose={() => setInviteOpen(false)}
               />
             )}

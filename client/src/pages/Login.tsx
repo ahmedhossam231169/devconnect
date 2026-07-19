@@ -65,7 +65,7 @@ export default function Login() {
               <input
                 id="identifier"
                 className="input-field !pl-11"
-                placeholder="felix@devconnect.io"
+                placeholder="felix@loopin.io"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 autoComplete="username"
