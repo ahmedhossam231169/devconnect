@@ -92,6 +92,26 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
+  docker:
+    name: docker — build the server image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # بنبني الصورة فعليًا (من غير push) — ده بيتأكد من الـ Dockerfile كامل
+      # بمرحلتيه، وأهمها مرحلة التشغيل (npm ci --omit=dev + postinstall). لو
+      # فخّ الـ prisma رجع أو الـ build اتكسر، بيبان هنا مش وقت الـ deploy.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: false
+          # كاش على مستوى GitHub Actions عشان الـ builds اللي بعده أسرع
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   client:
     name: client — typecheck · build
     runs-on: ubuntu-latest

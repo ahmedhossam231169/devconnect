@@ -1,0 +1,30 @@
+# كل ما هو أقل في الـ build context، البناء أسرع — والأهم: أأمن.
+# ⚠️ .env أول سطر عن قصد: من غيره أسرارك بتتنسخ جوه طبقات الصورة وتفضل
+# قابلة للاستخراج حتى لو الكونتينر النهائي مافيهوش، لأنها بتعيش في الـ history.
+.env
+.env.*
+!.env.example
+
+node_modules
+dist
+
+# مش محتاجينهم وقت البناء
+src/tests
+**/*.spec.ts
+**/*.test.ts
+vitest.config.ts
+
+# أدوات وتوثيق
+.git
+.gitignore
+.dockerignore
+Dockerfile
+*.md
+QA_AUDIT*.md
+e2e
+
+# ملفات cache/محرر
+*.tsbuildinfo
+.vscode
+.idea
+npm-debug.log*
