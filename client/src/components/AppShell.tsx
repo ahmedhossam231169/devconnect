@@ -92,12 +92,12 @@ export function AppShell({
   );
 
   const logo = (
-    <Link to="/feed" className="flex shrink-0 items-center gap-2" aria-label="DevConnect home">
+    <Link to="/feed" className="flex shrink-0 items-center gap-2" aria-label="loopIn home">
       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
         <Activity size={18} strokeWidth={2.5} />
       </span>
       <span className="bg-gradient-to-r from-brand-400 to-brand-500 bg-clip-text text-lg font-extrabold text-transparent">
-        DevConnect
+        loopIn
       </span>
     </Link>
   );
@@ -225,7 +225,7 @@ export function AppShell({
       <div className="md:pl-60">
         <main className={`mx-auto w-full ${maxW} px-4 py-6 sm:px-6`}>{children}</main>
         <footer className="border-t border-ink-700/40 py-5 text-center text-xs text-mist-600">
-          © {new Date().getFullYear()} DevConnect. Built for developers by developers.
+          © {new Date().getFullYear()} loopIn. Built for developers by developers.
         </footer>
       </div>
     </div>

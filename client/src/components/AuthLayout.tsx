@@ -20,11 +20,11 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       />
 
       <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-12">
-        <Link to="/" className="mb-2 flex items-center gap-2" aria-label="DevConnect home">
+        <Link to="/" className="mb-2 flex items-center gap-2" aria-label="loopIn home">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white">
             <Activity size={20} strokeWidth={2.5} />
           </span>
-          <span className="text-2xl font-extrabold text-brand-400">DevConnect</span>
+          <span className="text-2xl font-extrabold text-brand-400">loopIn</span>
         </Link>
         <p className="mb-8 text-sm font-semibold text-mist-100/90">
           Built for the next generation of developers.
@@ -40,7 +40,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       </div>
 
       <footer className="relative border-t border-ink-700/60 py-5 text-center text-sm text-mist-400">
-        © {new Date().getFullYear()} DevConnect. Built for developers by developers.
+        © {new Date().getFullYear()} loopIn. Built for developers by developers.
       </footer>
     </main>
   );

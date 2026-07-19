@@ -28,11 +28,11 @@ function LinkedInIcon({ size = 18 }: { size?: number }) {
 
 const CODE_LINES: [string, string][] = [
   // [line, css classes] — محاكاة كود المحرر في الهيرو
-  ["import { DevConnect }", "text-sky-300"],
+  ["import { LoopIn }", "text-sky-300"],
   ["  from '@core/network';", "text-emerald-300"],
   ["", ""],
   ["const community =", "text-mist-100"],
-  ["  new DevConnect();", "text-brand-400"],
+  ["  new LoopIn();", "text-brand-400"],
   ["", ""],
   ["community.onConnect(", "text-cyan-300"],
   ["  (dev) => {", "text-mist-100"],
@@ -114,7 +114,7 @@ export default function Landing() {
               <Activity size={18} strokeWidth={2.5} />
             </span>
             <span className="bg-gradient-to-r from-brand-400 to-brand-500 bg-clip-text text-lg font-extrabold text-transparent">
-              DevConnect
+              loopIn
             </span>
           </span>
           <div className="flex items-center gap-2">
@@ -182,7 +182,7 @@ export default function Landing() {
                   <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
                 </div>
-                <span className="font-mono text-xs text-mist-600">devconnect.ts</span>
+                <span className="font-mono text-xs text-mist-600">loopin.ts</span>
               </div>
               <pre className="overflow-x-auto p-4 font-mono text-[13px] leading-6">
                 {CODE_LINES.map(([line, cls], i) => (
@@ -270,7 +270,7 @@ export default function Landing() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white">
                 <Activity size={18} strokeWidth={2.5} />
               </span>
-              <span className="text-lg font-extrabold text-brand-400">DevConnect</span>
+              <span className="text-lg font-extrabold text-brand-400">loopIn</span>
             </span>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-mist-400">
               The premium platform for global talent discovery and project
@@ -323,7 +323,7 @@ export default function Landing() {
 
         <div className="border-t border-ink-700/40">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-5 text-xs text-mist-600">
-            <span>© {new Date().getFullYear()} DevConnect Inc. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} loopIn Inc. All rights reserved.</span>
             <div className="flex gap-6">
               <Link to="/" className="hover:text-mist-400">Privacy Policy</Link>
               <Link to="/" className="hover:text-mist-400">Terms of Service</Link>

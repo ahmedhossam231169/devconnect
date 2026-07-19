@@ -66,7 +66,7 @@ function ConnectGitHubCard() {
 
       {result === "already-linked" && (
         <p className="text-sm text-red-400">
-          That GitHub account is already linked to another DevConnect account.
+          That GitHub account is already linked to another loopIn account.
         </p>
       )}
       {result === "error" && (
